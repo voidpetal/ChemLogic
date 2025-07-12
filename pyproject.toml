@@ -80,7 +80,7 @@ package-dir = "src"
 distribution = true
 
 [tool.pdm.scripts]
-test = "pytest"
+test = "pytest -n 10"
 
 [dependency-groups]
 dev = [
