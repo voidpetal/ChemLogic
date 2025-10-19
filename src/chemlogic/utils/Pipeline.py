@@ -346,7 +346,7 @@ class Pipeline:
 
         return loss, metric_score
 
-    def predict(self, smiles_list: list[str]):
+    def inference(self, smiles_list: list[str]):
         """
         Perform inference on a list of SMILES strings.
 
