@@ -234,8 +234,6 @@ class Pipeline:
         """
         Train and test the model based on the provided template and dataset.
 
-        :param template: The template used for the evaluator.
-        :param dataset: The dataset to train and test on.
         :param lr: Learning rate for the optimizer.
         :param epochs: Number of training epochs.
         :param split_ratio: The ratio to split the dataset into training and testing.
@@ -261,6 +259,9 @@ class Pipeline:
         print("Training model")
         train_losses = self._train_model(evaluator, train_dataset, settings.epochs)
         test_loss, other_metric = self._evaluate_model(evaluator, test_dataset)
+        
+        # Save the trained model
+        self.evaluator = evaluator
 
         return np.mean(train_losses), test_loss, other_metric, evaluator
 
@@ -341,3 +342,40 @@ class Pipeline:
             ) / len(test_dataset)
 
         return loss, metric_score
+
+    def inference(self, smiles_list: list[str]):
+        """
+        Perform inference on a list of SMILES strings.
+
+        :param smiles_list: A list of SMILES strings to perform inference on.
+        :return: A list of predictions corresponding to the input SMILES strings.
+        """
+        if not hasattr(self, "evaluator"):
+            raise ValueError(
+                "The model has not been trained yet. Please train the model before performing inference."
+            )
+
+        inference_dataset = get_dataset(
+            self.dataset.dataset_name,
+            self.dataset.param_size,
+            smiles_list=smiles_list,
+            labels=[0] * len(smiles_list),  # Dummy labels
+        )
+
+        built_dataset = self.evaluator.build_dataset(
+            inference_dataset.data, batch_size=1
+        )
+
+        predictions = []
+        for _, y_hat in zip(
+            built_dataset.samples,
+            self.evaluator.test(built_dataset, generator=False),
+            strict=False,
+        ):
+            # Inverse scaling if applicable
+            if self.dataset.scaling_factor:
+                min_label, max_label = self.dataset.scaling_factor
+                y_hat = y_hat * (max_label - min_label) + min_label
+            predictions.append(y_hat)
+
+        return predictions
