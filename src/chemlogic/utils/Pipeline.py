@@ -230,6 +230,8 @@ class Pipeline:
         optimizer: Optimizer = Adam,
         error_function: ErrorFunction = None,
         batches: int = 1,
+        early_stopping_threshold: float = 0.001,
+        early_stopping_rounds: int = 10,
     ):
         """
         Train and test the model based on the provided template and dataset.
@@ -240,6 +242,8 @@ class Pipeline:
         :param optimizer: The optimizer class to be used.
         :param error_function: The error function to be used.
         :param batches: Number of batches to build the dataset in.
+        :param early_stopping_threshold: Minimum improvement threshold to reset early stopping counter.
+        :param early_stopping_rounds: Number of rounds without improvement to trigger early stopping.
         :return: The training loss, testing loss, AUROC validation score for classification or R2 for regression tasks and the evaluator object.
         """
         if error_function is None:
@@ -257,7 +261,7 @@ class Pipeline:
             built_dataset.samples, train_size=split_ratio, random_state=42
         )
         print("Training model")
-        train_losses = self._train_model(evaluator, train_dataset, settings.epochs)
+        train_losses = self._train_model(evaluator, train_dataset, settings.epochs, early_stopping_rounds, early_stopping_threshold)
         test_loss, other_metric = self._evaluate_model(evaluator, test_dataset)
         
         # Save the trained model
@@ -342,7 +346,7 @@ class Pipeline:
 
         return loss, metric_score
 
-    def inference(self, smiles_list: list[str]):
+    def predict(self, smiles_list: list[str]):
         """
         Perform inference on a list of SMILES strings.
 
