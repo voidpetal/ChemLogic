@@ -323,7 +323,6 @@ class Pipeline:
         ):
             predictions.append(y_hat)
             targets.append(sample.java_sample.target.value)
-        print(f"Predictions: {predictions}")
 
         metric_score = None
         if self.task == "classification":
