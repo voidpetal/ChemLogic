@@ -3,8 +3,8 @@ from enum import Enum
 import numpy as np
 from neuralogic.core import R, Settings, V
 from neuralogic.nn import get_evaluator
-from neuralogic.nn.loss import MSE
-from neuralogic.optim import Adam
+from neuralogic.nn.loss import MSE, CrossEntropy, ErrorFunction
+from neuralogic.optim import Adam, Optimizer
 from sklearn.metrics import roc_auc_score, r2_score
 from sklearn.model_selection import train_test_split
 
@@ -224,12 +224,12 @@ class Pipeline:
 
     def train_test_cycle(
         self,
-        lr=0.001,
-        epochs=100,
-        split_ratio=0.75,
-        optimizer=Adam,
-        error_function=MSE,
-        batches=1,
+        lr: float = 0.001,
+        epochs: int = 100,
+        split_ratio: float = 0.75,
+        optimizer: Optimizer = Adam,
+        error_function: ErrorFunction = None,
+        batches: int = 1,
     ):
         """
         Train and test the model based on the provided template and dataset.
@@ -244,6 +244,9 @@ class Pipeline:
         :param batches: Number of batches to build the dataset in.
         :return: The training loss, testing loss, AUROC validation score for classification or R2 for regression tasks and the evaluator object.
         """
+        if error_function is None:
+            error_function = MSE if self.task == "regression" else CrossEntropy
+
         settings = Settings(
             optimizer=optimizer(lr=lr), epochs=epochs, error_function=error_function()
         )
