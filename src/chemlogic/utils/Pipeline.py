@@ -5,7 +5,7 @@ from neuralogic.core import R, Settings, V
 from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE
 from neuralogic.optim import Adam
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, r2_score
 from sklearn.model_selection import train_test_split
 
 from chemlogic.datasets.datasets import get_dataset
@@ -48,6 +48,7 @@ class Pipeline:
         funnel=False,
         smiles_list: list[str] = None,
         labels: list[int] = None,
+        task: str = "classification",
     ):
         """
         Initialize the test setup by configuring the dataset and model along with optional chemical rules and subgraphs.
@@ -65,6 +66,7 @@ class Pipeline:
         :param funnel: create an informational funnel in the knowledge base. - default: False
         :param smiles_list: A list of smiles strings to build the dataset with.
         :param labels: A list of integer labels to build the dataset with.
+        :param task: The type of task, either "classification" or "regression". - default: "classification"
         :return: A tuple containing the template and dataset.
         """
 
@@ -217,6 +219,8 @@ class Pipeline:
 
         self.dataset = dataset
         self.template = dataset + template
+        
+        self.task = task
 
     def train_test_cycle(
         self,
@@ -237,7 +241,8 @@ class Pipeline:
         :param split_ratio: The ratio to split the dataset into training and testing.
         :param optimizer: The optimizer class to be used.
         :param error_function: The error function to be used.
-        :return: The training loss, testing loss, AUROC validation score and the evaluator object.
+        :param batches: Number of batches to build the dataset in.
+        :return: The training loss, testing loss, AUROC validation score for classification or R2 for regression tasks and the evaluator object.
         """
         settings = Settings(
             optimizer=optimizer(lr=lr), epochs=epochs, error_function=error_function()
@@ -252,9 +257,9 @@ class Pipeline:
         )
         print("Training model")
         train_losses = self._train_model(evaluator, train_dataset, settings.epochs)
-        test_loss, auroc_score = self._evaluate_model(evaluator, test_dataset)
+        test_loss, other_metric = self._evaluate_model(evaluator, test_dataset)
 
-        return np.mean(train_losses), test_loss, auroc_score, evaluator
+        return np.mean(train_losses), test_loss, other_metric, evaluator
 
     def _train_model(
         self,
@@ -270,6 +275,8 @@ class Pipeline:
         :param evaluator: The evaluator object used for training.
         :param train_dataset: The dataset to train on.
         :param epochs: Number of training epochs.
+        :param early_stopping_rounds: Number of rounds without improvement to trigger early stopping.
+        :param early_stopping_threshold: Minimum improvement threshold to reset early stopping counter.
         :return: List of average training losses per epoch.
         """
         average_losses = []
@@ -302,7 +309,7 @@ class Pipeline:
 
         :param evaluator: The evaluator object used for testing.
         :param test_dataset: The dataset to test on.
-        :return: The testing loss and AUROC score.
+        :return: The testing loss and the specified metric score.
         """
 
         predictions = []
@@ -312,11 +319,22 @@ class Pipeline:
         ):
             predictions.append(y_hat)
             targets.append(sample.java_sample.target.value)
+        print(f"Predictions: {predictions}")
 
-        loss = sum(
-            round(pred) != target
-            for pred, target in zip(predictions, targets, strict=False)
-        ) / len(test_dataset)
-        auroc_score = roc_auc_score(targets, predictions)
+        metric_score = None
+        if self.task == "classification":
+            metric_score = roc_auc_score(targets, predictions)
+            # Accuracy
+            loss = sum(
+                round(pred) != target
+                for pred, target in zip(predictions, targets, strict=False)
+            ) / len(test_dataset)
+        elif self.task == "regression":
+            metric_score = r2_score(targets, predictions)
+            # Mean Squared Error
+            loss = sum(
+                (pred - target) ** 2
+                for pred, target in zip(predictions, targets, strict=False)
+            ) / len(test_dataset)
 
-        return loss, auroc_score
+        return loss, metric_score
