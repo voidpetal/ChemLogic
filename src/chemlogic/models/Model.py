@@ -1,4 +1,4 @@
-from neuralogic.core import R, V
+from neuralogic.core import R, V, Transformation
 
 from chemlogic.utils.ChemTemplate import ChemTemplate as Template
 
@@ -14,6 +14,7 @@ class Model(Template):
         connection: str,
         param_size: int,
         output_layer_name: str = "predict",
+        output_layer_transformation=Transformation.IDENTITY,
         **kwargs,
     ):
         """
@@ -51,6 +52,7 @@ class Model(Template):
         self.edge_embed = edge_embed
         self.connection = connection
         self.output_layer_name = output_layer_name
+        self.output_layer_transformation = output_layer_transformation
 
         # Match the parameter size to the output dimension
         if param_size == 1:
@@ -90,6 +92,6 @@ class Model(Template):
                 (
                     R.get(self.output_layer_name)[self.output_param_size]
                     <= R.get(f"{self.model_name}")(V.X)
-                )
+                ) | [self.output_layer_transformation]
             ]
         )

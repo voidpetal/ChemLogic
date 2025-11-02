@@ -1,7 +1,7 @@
 from enum import Enum
 
 import numpy as np
-from neuralogic.core import R, Settings, V
+from neuralogic.core import R, Transformation, Settings, V
 from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy, ErrorFunction
 from neuralogic.optim import Adam, Optimizer
@@ -82,6 +82,15 @@ class Pipeline:
 
         dataset = get_dataset(dataset_name, param_size, **dataset_args)
 
+        if task not in ["regression", "classification"]:
+            raise ValueError("Task must be either 'regression' or 'classification'.")
+        
+        transformation = None
+        if task == "classification":
+            transformation = Transformation.SIGMOID
+        elif task == "regression":
+            transformation = Transformation.IDENTITY
+
         template = ChemTemplate()
 
         if architecture == ArchitectureType.BARE:
@@ -145,6 +154,7 @@ class Pipeline:
             max_depth=max_depth,
             local=local,
             output_layer_name=io_layers["nn_output"],
+            output_layer_transformation=transformation,
         )
 
         if chem_rules:
@@ -169,6 +179,7 @@ class Pipeline:
                 param_size,
                 dataset.halogens,
                 output_layer_name=io_layers["chem_output"],
+                output_layer_transformation=transformation,
                 single_bond=dataset.single_bond,
                 double_bond=dataset.double_bond,
                 triple_bond=dataset.triple_bond,
@@ -203,6 +214,7 @@ class Pipeline:
                 max_cycle_size=max_cycle_size,
                 max_depth=max_subgraph_depth,
                 output_layer_name=io_layers["subg_output"],
+                output_layer_transformation=transformation,
                 single_bond=dataset.single_bond,
                 double_bond=dataset.double_bond,
                 carbon=dataset.carbon,
@@ -267,7 +279,7 @@ class Pipeline:
         # Save the trained model
         self.evaluator = evaluator
 
-        return np.mean(train_losses), test_loss, other_metric, evaluator
+        return train_losses[-1], test_loss, other_metric, evaluator
 
     def _train_model(
         self,
