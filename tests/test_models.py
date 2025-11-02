@@ -12,6 +12,7 @@ from chemlogic.models import (
     get_model,
 )
 from chemlogic.utils.ChemTemplate import ChemTemplate as Template
+from chemlogic.utils.Pipeline import Pipeline
 
 
 class TestModelLoader(unittest.TestCase):
@@ -256,3 +257,31 @@ class TestModels(unittest.TestCase):
         self.assertGreaterEqual(len(rules), 4)
         self.assertTrue(any("edge" in str(rule) for rule in rules))
         self.assertTrue(any("node" in str(rule) for rule in rules))
+
+
+class TestModelsTrainable(unittest.TestCase):
+    def train(self, model_name):
+        pipeline = Pipeline("mutagen", model_name, 1, 1)
+
+        pipeline.train_test_cycle(epochs=1)
+
+    def test_gnn_trainable(self):
+        self.train("gnn")
+
+    def test_rgcn_trainable(self):
+        self.train("rgcn")
+
+    def test_kgnn_trainable(self):
+        self.train("kgnn")
+
+    def test_ego_trainable(self):
+        self.train("ego")
+
+    def test_diffusion_trainable(self):
+        self.train("diffusion")
+
+    def test_cw_trainable(self):
+        self.train("cw")
+
+    def test_sgn_trainable(self):
+        self.train("sgn")

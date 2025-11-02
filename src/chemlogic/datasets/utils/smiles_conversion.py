@@ -1,4 +1,5 @@
 import os
+import re
 
 import networkx
 import networkx as nx
@@ -130,8 +131,28 @@ def create_queries_file(labels, file_name):
             f.write(f"{label} predict.\n")
 
 
+def get_unique_atoms_and_bonds(file_path):
+    atom_pattern = re.compile(r"<1>\s+([A-Za-z]{1,3})\(\d+\)(?!\s*,?\s*b_\d+\()")
+    bond_pattern = re.compile(r"<1>\s+(b_\d+)\(\d+\)")
+
+    unique_atoms = set()
+    unique_bonds = set()
+
+    with open(file_path) as f:
+        for line in f:
+            atoms = atom_pattern.findall(line)
+            atoms = [a for a in atom_pattern.findall(line) if not a.startswith("b_")]
+
+            bonds = bond_pattern.findall(line)
+
+            unique_atoms.update(atoms)
+            unique_bonds.update(bonds)
+
+    return list(unique_atoms), list(unique_bonds)
+
+
 def get_dataset_and_mappings(
-    smiles_list, labels=None, file_prefix="", output_location="datasets"
+    smiles_list, labels=None, file_prefix="", output_location="."
 ):
     """Create the neuralogic dataset from list of smiles and also dump it as text files"""
     assert len(smiles_list) == len(labels) if labels is not None else True
@@ -144,7 +165,7 @@ def get_dataset_and_mappings(
 
     if labels is not None:
         for graph, label in zip(graphs, labels, strict=False):
-            if isinstance(label, int):
+            if isinstance(label, (int, float)):
                 graph.y = label
             elif isinstance(label, list):
                 graph.y = label[0]
@@ -155,7 +176,7 @@ def get_dataset_and_mappings(
     # Bond mapping: [{(in_node, out_node): bond_id, ...} for G in graphs]
     bond_mappings = [
         {
-            (int(g.edge_index[0][i]), int(g.edge_index[1][i])): int(id)
+            (int(g.edge_index[0][i]), int(g.edge_index[1][i])): int(id) + g.x.size(0)
             for i, id in enumerate(g.bond_id)
         }
         for g in pyg_graphs
@@ -201,4 +222,4 @@ def get_dataset_and_mappings(
     # load the dataset from the text file
     dataset = FileDataset(examples_file=examples_updated_fp, queries_file=queries_fp)
 
-    return dataset
+    return dataset, get_unique_atoms_and_bonds(examples_updated_fp)

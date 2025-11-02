@@ -1,6 +1,6 @@
 import mlflow
 
-from chemlogic.utils.Pipeline import Pipeline, ArchitectureType
+from chemlogic.utils.Pipeline import ArchitectureType, Pipeline
 
 
 # TODO: do a better job in refactoring here
@@ -10,8 +10,11 @@ def main(
     model_name,
     chemical_rules,
     subgraphs,
-    architecture="parallel",
+    architecture="bare",
     batches=1,
+    smiles_list=None,
+    labels=None,
+    task="classification",
 ):
     with mlflow.start_run():
         max_subgraph_depth = 0
@@ -48,7 +51,7 @@ def main(
         epochs = 500
         split = 0.7
 
-        architecture_type = ArchitectureType.from_string("CCD")
+        architecture_type = ArchitectureType.from_string(architecture)
         pipeline = Pipeline(
             dataset_name,
             model_name,
@@ -61,9 +64,12 @@ def main(
             subgraphs=subgraphs,
             chem_rules=chemical_rules,
             funnel=funnel,
+            smiles_list=smiles_list,
+            labels=labels,
+            task=task
         )
 
-        train_loss, test_loss, auroc_score, evaluator = pipeline.train_test_cycle(
+        train_loss, test_loss, metric, evaluator = pipeline.train_test_cycle(
             lr, epochs, split, batches=batches
         )
 
@@ -95,6 +101,6 @@ def main(
 
         mlflow.log_metric("train_loss", train_loss)
         mlflow.log_metric("test_loss", test_loss)
-        mlflow.log_metric("auroc", auroc_score)
+        mlflow.log_metric("metric", metric)
 
-    return test_loss
+    return metric, pipeline

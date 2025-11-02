@@ -120,14 +120,14 @@ class Dataset(Template):
     def create_template(self):
         self.add_rules(
             [
-                (R.atom_embed(V.A)[self.param_size,] <= R.get(atom)(V.A))
+                (R.get(self.node_embed)(V.A)[self.param_size,] <= R.get(atom)(V.A))
                 for atom in self.atom_types
             ]
         )
 
         self.add_rules(
             [
-                (R.bond_embed(V.B)[self.param_size,] <= R.get(bond)(V.B))
+                (R.get(self.edge_embed)(V.B)[self.param_size,] <= R.get(bond)(V.B))
                 for bond in self.bond_types
             ]
         )

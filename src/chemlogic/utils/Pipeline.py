@@ -1,9 +1,10 @@
-import numpy as np
-from neuralogic.core import R, Settings, V
+from enum import Enum
+
+from neuralogic.core import R, Settings, Transformation, V
 from neuralogic.nn import get_evaluator
-from neuralogic.nn.loss import MSE
-from neuralogic.optim import Adam
-from sklearn.metrics import roc_auc_score
+from neuralogic.nn.loss import MSE, CrossEntropy, ErrorFunction
+from neuralogic.optim import Adam, Optimizer
+from sklearn.metrics import r2_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 
 from chemlogic.datasets.datasets import get_dataset
@@ -11,7 +12,7 @@ from chemlogic.knowledge_base.chemrules import get_chem_rules
 from chemlogic.knowledge_base.subgraphs import get_subgraphs
 from chemlogic.models.models import get_model
 from chemlogic.utils.ChemTemplate import ChemTemplate
-from enum import Enum
+
 
 class ArchitectureType(Enum):
     BARE = "bare"
@@ -23,7 +24,10 @@ class ArchitectureType(Enum):
         try:
             return ArchitectureType[name]
         except KeyError:
-            raise ValueError(f"Undefined architecture type: {name}. Valid types are: {[e.name for e in ArchitectureType]}")
+            raise ValueError(
+                f"Undefined architecture type: {name}. Valid types are: {[e.name for e in ArchitectureType]}"
+            ) from KeyError
+
 
 class Pipeline:
     def __init__(
@@ -41,6 +45,9 @@ class Pipeline:
         examples=None,
         queries=None,
         funnel=False,
+        smiles_list: list[str] = None,
+        labels: list[int] = None,
+        task: str = "classification",
     ):
         """
         Initialize the test setup by configuring the dataset and model along with optional chemical rules and subgraphs.
@@ -56,9 +63,33 @@ class Pipeline:
         :param chem_rules: Tuple containing chemical rule configurations.
         :param architecture: The architecture to use for the model. - default: ArchitectureType.BARE ["bare", "CCE", "CCD"]
         :param funnel: create an informational funnel in the knowledge base. - default: False
+        :param smiles_list: A list of smiles strings to build the dataset with.
+        :param labels: A list of integer labels to build the dataset with.
+        :param task: The type of task, either "classification" or "regression". - default: "classification"
         :return: A tuple containing the template and dataset.
         """
-        dataset = get_dataset(dataset_name, param_size, examples, queries)
+
+        if bool(smiles_list) != bool(labels):
+            raise ValueError(
+                "If building a dataset from SMILES, make sure to provide both `smiles_list` and `labels` params."
+            )
+
+        if smiles_list:
+            dataset_args = {"smiles_list": smiles_list, "labels": labels}
+        else:
+            dataset_args = {"examples": examples, "queries": queries}
+
+        dataset = get_dataset(dataset_name, param_size, **dataset_args)
+
+        if task not in ["regression", "classification"]:
+            raise ValueError("Task must be either 'regression' or 'classification'.")
+
+        transformation = None
+        if task == "classification":
+            transformation = Transformation.SIGMOID
+        elif task == "regression":
+            transformation = Transformation.IDENTITY
+
         template = ChemTemplate()
 
         if architecture == ArchitectureType.BARE:
@@ -122,6 +153,7 @@ class Pipeline:
             max_depth=max_depth,
             local=local,
             output_layer_name=io_layers["nn_output"],
+            output_layer_transformation=transformation,
         )
 
         if chem_rules:
@@ -146,6 +178,7 @@ class Pipeline:
                 param_size,
                 dataset.halogens,
                 output_layer_name=io_layers["chem_output"],
+                output_layer_transformation=transformation,
                 single_bond=dataset.single_bond,
                 double_bond=dataset.double_bond,
                 triple_bond=dataset.triple_bond,
@@ -180,6 +213,7 @@ class Pipeline:
                 max_cycle_size=max_cycle_size,
                 max_depth=max_subgraph_depth,
                 output_layer_name=io_layers["subg_output"],
+                output_layer_transformation=transformation,
                 single_bond=dataset.single_bond,
                 double_bond=dataset.double_bond,
                 carbon=dataset.carbon,
@@ -197,27 +231,35 @@ class Pipeline:
         self.dataset = dataset
         self.template = dataset + template
 
+        self.task = task
+
     def train_test_cycle(
         self,
-        lr=0.001,
-        epochs=100,
-        split_ratio=0.75,
-        optimizer=Adam,
-        error_function=MSE,
-        batches=1,
+        lr: float = 0.001,
+        epochs: int = 100,
+        split_ratio: float = 0.75,
+        optimizer: Optimizer = Adam,
+        error_function: ErrorFunction = None,
+        batches: int = 1,
+        early_stopping_threshold: float = 0.001,
+        early_stopping_rounds: int = 10,
     ):
         """
         Train and test the model based on the provided template and dataset.
 
-        :param template: The template used for the evaluator.
-        :param dataset: The dataset to train and test on.
         :param lr: Learning rate for the optimizer.
         :param epochs: Number of training epochs.
         :param split_ratio: The ratio to split the dataset into training and testing.
         :param optimizer: The optimizer class to be used.
         :param error_function: The error function to be used.
-        :return: The training loss, testing loss, AUROC validation score and the evaluator object.
+        :param batches: Number of batches to build the dataset in.
+        :param early_stopping_threshold: Minimum improvement threshold to reset early stopping counter.
+        :param early_stopping_rounds: Number of rounds without improvement to trigger early stopping.
+        :return: The training loss, testing loss, AUROC validation score for classification or R2 for regression tasks and the evaluator object.
         """
+        if error_function is None:
+            error_function = MSE if self.task == "regression" else CrossEntropy
+
         settings = Settings(
             optimizer=optimizer(lr=lr), epochs=epochs, error_function=error_function()
         )
@@ -230,10 +272,19 @@ class Pipeline:
             built_dataset.samples, train_size=split_ratio, random_state=42
         )
         print("Training model")
-        train_losses = self._train_model(evaluator, train_dataset, settings.epochs)
-        test_loss, auroc_score = self._evaluate_model(evaluator, test_dataset)
+        train_losses = self._train_model(
+            evaluator,
+            train_dataset,
+            settings.epochs,
+            early_stopping_rounds,
+            early_stopping_threshold,
+        )
+        test_loss, other_metric = self._evaluate_model(evaluator, test_dataset)
 
-        return np.mean(train_losses), test_loss, auroc_score, evaluator
+        # Save the trained model
+        self.evaluator = evaluator
+
+        return train_losses[-1], test_loss, other_metric, evaluator
 
     def _train_model(
         self,
@@ -249,6 +300,8 @@ class Pipeline:
         :param evaluator: The evaluator object used for training.
         :param train_dataset: The dataset to train on.
         :param epochs: Number of training epochs.
+        :param early_stopping_rounds: Number of rounds without improvement to trigger early stopping.
+        :param early_stopping_threshold: Minimum improvement threshold to reset early stopping counter.
         :return: List of average training losses per epoch.
         """
         average_losses = []
@@ -281,7 +334,7 @@ class Pipeline:
 
         :param evaluator: The evaluator object used for testing.
         :param test_dataset: The dataset to test on.
-        :return: The testing loss and AUROC score.
+        :return: The testing loss and the specified metric score.
         """
 
         predictions = []
@@ -292,10 +345,53 @@ class Pipeline:
             predictions.append(y_hat)
             targets.append(sample.java_sample.target.value)
 
-        loss = sum(
-            round(pred) != target
-            for pred, target in zip(predictions, targets, strict=False)
-        ) / len(test_dataset)
-        auroc_score = roc_auc_score(targets, predictions)
+        metric_score = None
+        if self.task == "classification":
+            metric_score = roc_auc_score(targets, predictions)
+            # Accuracy
+            loss = sum(
+                round(pred) != target
+                for pred, target in zip(predictions, targets, strict=False)
+            ) / len(test_dataset)
+        elif self.task == "regression":
+            metric_score = r2_score(targets, predictions)
+            # Mean Squared Error
+            loss = sum(
+                (pred - target) ** 2
+                for pred, target in zip(predictions, targets, strict=False)
+            ) / len(test_dataset)
 
-        return loss, auroc_score
+        return loss, metric_score
+
+    def inference(self, smiles_list: list[str]):
+        """
+        Perform inference on a list of SMILES strings.
+
+        :param smiles_list: A list of SMILES strings to perform inference on.
+        :return: A list of predictions corresponding to the input SMILES strings.
+        """
+        if not hasattr(self, "evaluator"):
+            raise ValueError(
+                "The model has not been trained yet. Please train the model before performing inference."
+            )
+
+        inference_dataset = get_dataset(
+            self.dataset.dataset_name,
+            self.dataset.param_size,
+            smiles_list=smiles_list,
+            labels=[0] * len(smiles_list),  # Dummy labels
+        )
+
+        built_dataset = self.evaluator.build_dataset(
+            inference_dataset.data, batch_size=1
+        )
+
+        predictions = []
+        for _, y_hat in zip(
+            built_dataset.samples,
+            self.evaluator.test(built_dataset, generator=False),
+            strict=False,
+        ):
+            predictions.append(y_hat)
+
+        return predictions

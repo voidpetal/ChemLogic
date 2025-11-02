@@ -11,3 +11,4 @@ from .PTC import PTC as PTC
 from .PTCFM import PTCFM as PTCFM
 from .PTCFR import PTCFR as PTCFR
 from .PTCMM import PTCMM as PTCMM
+from .SmilesDataset import SmilesDataset as SmilesDataset

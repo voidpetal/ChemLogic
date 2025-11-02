@@ -1,4 +1,4 @@
-from neuralogic.core import R, Template, V
+from neuralogic.core import R, Template, Transformation, V
 
 from chemlogic.knowledge_base.functional_groups.GeneralFunctionalGroups import (
     GeneralFunctionalGroups,
@@ -11,6 +11,7 @@ from chemlogic.knowledge_base.functional_groups.RelaxedFunctionalGroups import (
 )
 from chemlogic.knowledge_base.functional_groups.SulfurGroups import SulfurGroups
 
+
 def get_chem_rules(
     layer_name: str,
     node_embed: str,
@@ -19,6 +20,7 @@ def get_chem_rules(
     param_size: int,
     halogens: list,
     output_layer_name: str = "predict",
+    output_layer_transformation=Transformation.IDENTITY,
     single_bond=None,
     double_bond=None,
     triple_bond=None,
@@ -78,14 +80,23 @@ def get_chem_rules(
 
     if param_size == 1:
         template.add_rules(
-            [R.get(output_layer_name)[param_size,] <= R.get(f"{layer_name}_chem_rules")]
+            [
+                (
+                    R.get(output_layer_name)[param_size,]
+                    <= R.get(f"{layer_name}_chem_rules")
+                )
+                | [output_layer_transformation]
+            ]
         )
         param_size = (param_size,)
     else:
         template.add_rules(
             [
-                R.get(output_layer_name)[1, param_size]
-                <= R.get(f"{layer_name}_chem_rules")
+                (
+                    R.get(output_layer_name)[1, param_size]
+                    <= R.get(f"{layer_name}_chem_rules")
+                )
+                | [output_layer_transformation]
             ]
         )
         param_size = (param_size, param_size)

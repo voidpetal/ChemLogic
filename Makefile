@@ -4,7 +4,7 @@
 update-deps: 
 	pdm update && \
 	pdm fix && \
-	pdm export -o requirements.txt --without-hashes --pyproject
+	pdm export -o requirements.txt --without-hashes --pyproject --prod
 
 # Run formatting, linting, and tests
 test:

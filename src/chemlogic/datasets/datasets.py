@@ -6,6 +6,7 @@ from chemlogic.datasets.PTC import PTC
 from chemlogic.datasets.PTCFM import PTCFM
 from chemlogic.datasets.PTCFR import PTCFR
 from chemlogic.datasets.PTCMM import PTCMM
+from chemlogic.datasets.SmilesDataset import SmilesDataset
 
 # Dataset registry
 DATASET_CLASSES = {
@@ -17,6 +18,7 @@ DATASET_CLASSES = {
     "dhfr": DHFR,
     "er": ER,
     "custom": CustomDataset,
+    "smiles": SmilesDataset,
 }
 
 # Dataset sizes
@@ -72,7 +74,14 @@ def get_dataset_len(name):
     return DATASET_LENGTHS.get(name, 0)
 
 
-def get_dataset(dataset_name, param_size, examples=None, queries=None):
+def get_dataset(
+    dataset_name,
+    param_size,
+    examples=None,
+    queries=None,
+    smiles_list: list[str] = None,
+    labels: list[int] = None,
+):
     """
     Instantiates a dataset class based on its name.
 
@@ -81,13 +90,23 @@ def get_dataset(dataset_name, param_size, examples=None, queries=None):
         param_size (int): Parameter size.
         examples (str, optional): Path to examples file (for custom datasets).
         queries (str, optional): Path to queries file (for custom datasets).
-
+        smiles_list (list[str], optional): A list of smiles strings to build the dataset with.
+        labels (list[int], optional): A list of integer labels to build the dataset with.
     Returns:
         An instance of the dataset class.
 
     Raises:
         ValueError: If the dataset name is invalid.
     """
+    # Dataset from SMILES list
+    if smiles_list:
+        return SmilesDataset(
+            smiles_list=smiles_list,
+            labels=labels,
+            param_size=param_size,
+            dataset_name=dataset_name,
+        )
+
     # Custom dataset with custom examples/queries files, or from custom datasets
     if (examples and queries) or dataset_name in CUSTOM_DATASETS:
         return CustomDataset(examples, queries, param_size, dataset_name)

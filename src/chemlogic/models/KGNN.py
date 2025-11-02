@@ -36,13 +36,13 @@ class KGNN(Model):
                 body = [
                     R.get(f"{current_layer}_{k}")(V.X)[self.param_size],
                     R.get(f"{current_layer}_{k}")(V.Y)[self.param_size],
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.X, V.Y),
                 ]
             else:
                 body = [
                     R.get(f"{current_layer}_{k}")(V.X, V.Z)[self.param_size],
                     R.get(f"{current_layer}_{k}")(V.Z, V.Y)[self.param_size],
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.X, V.Y, V.Z),
                 ]
 
             if self.local:

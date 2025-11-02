@@ -21,7 +21,7 @@ class CustomDataset(Dataset):
         self.examples = examples
         self.queries = queries
 
-        atom_types = ["c", "o", "br", "i", "f", "h", "n", "cl"]
+        atom_types = ["c", "o", "br", "i", "f", "h", "n", "cl", "s"]
         key_atoms = ["o", "s", "n"]
         bond_types = ["b_1", "b_2", "b_3", "b_4"]
 

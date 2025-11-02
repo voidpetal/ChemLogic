@@ -46,6 +46,7 @@ class CWNet(Model):
                     R.get(self.output_layer_name)[self.output_param_size]
                     <= R.get(f"{self.model_name}")(V.X)
                 )
+                | [self.output_layer_transformation]
             ]
         )
 
@@ -72,7 +73,7 @@ class CWNet(Model):
                 R.get(f"{previous_layer}_edge")(f"B{i}")[self.param_size]
                 for i in range(n)
             )
-            body.append(R.special.alldiff(...))
+            body.append(R.special.alldiff(*(f"X{i}" for i in range(n))))
 
             return [R.get(current_layer + "_edge")(V.B0) <= body]
 
