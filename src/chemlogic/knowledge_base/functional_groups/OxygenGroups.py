@@ -148,7 +148,7 @@ class OxygenGroups(KnowledgeBase):
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.O, V.R, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.O, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.R, V.O, V.B2),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C, V.R, V.O),
                 )
             ]
         )

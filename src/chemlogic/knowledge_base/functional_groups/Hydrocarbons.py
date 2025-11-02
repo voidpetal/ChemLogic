@@ -44,7 +44,7 @@ class Hydrocarbons(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.D, V.E, V.B4),
                     R.get(f"{self.layer_name}_bond_message")(V.E, V.F, V.B5),
                     R.get(f"{self.layer_name}_bond_message")(V.F, V.A, V.B6),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.A, V.B, V.C, V.D, V.E, V.F),
                 )
             ]
         )

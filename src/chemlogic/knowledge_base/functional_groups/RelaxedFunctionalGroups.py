@@ -70,7 +70,7 @@ class RelaxedFunctionalGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_relaxed_carbonyl_group")(V.C, V.O),
                     R.get(f"{self.layer_name}_relaxed_aliphatic_bonded")(V.C, V.R1),
                     R.get(f"{self.layer_name}_relaxed_aliphatic_bonded")(V.C, V.R2),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C, V.O, V.R1, V.R2),
                 )
             ]
         )
@@ -105,7 +105,7 @@ class RelaxedFunctionalGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.D, V.E),
                     R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.E, V.F),
                     R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.F, V.A),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.A, V.B, V.C, V.D, V.E, V.F),
                 )
             ]
         )

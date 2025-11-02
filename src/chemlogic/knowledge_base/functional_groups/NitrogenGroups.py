@@ -35,7 +35,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.R1, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.R2, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.R3, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.N, V.R1, V.R2, V.R3),
                 )
             ]
         )
@@ -50,7 +50,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_amino_group")(V.N, V.R1, V.R2, V.R3),
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.N, V.C, V.B),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.C, V.B),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.N, V.R1, V.R2, V.R3, V.C),
                 )
             ]
         )
@@ -75,7 +75,7 @@ class NitrogenGroups(KnowledgeBase):
                 <= (
                     R.get(f"{self.layer_name}_carbonyl_group")(V.C, V.O, V.R, V.N),
                     R.get(f"{self.layer_name}_amino_group")(V.N, V.C, V.R1, V.R2),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.R, V.R1, V.R2, V.C, V.O, V.N),
                 )
             ]
         )
@@ -107,7 +107,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.R1, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.R2, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.R, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.R, V.R1, V.R2, V.C, V.N),
                 )
             ]
         )
@@ -136,7 +136,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_carbonyl_group")(V.C2, V.O2, V.R2, V.N),
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.N, V.R, V.B),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.R, V.B),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.R, V.R1, V.R2, V.C1, V.C2, V.N, V.O1, V.O2),
                 )
             ]
         )
@@ -156,7 +156,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.N, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.N1, V.N2, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.N2, V.N3, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C, V.N1, V.N2, V.N3),
                 )
             ]
         )
@@ -176,7 +176,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.C1, V.N, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.N1, V.N2, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.N2, V.C2, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C1, V.C2, V.N1, V.N2),
                 )
             ]
         )
@@ -196,7 +196,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.N, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.O, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.O, V.R, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C, V.N, V.O, V.R),
                 )
             ]
         )
@@ -216,7 +216,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.N, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.O, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.R, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.R, V.C, V.O, V.N),
                 )
             ]
         )
@@ -241,7 +241,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.R, V.N, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.O1, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.O2, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.R, V.N, V.O1, V.O2),
                 )
             ]
         )
@@ -271,7 +271,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_nitro_group")(V.O, V.N, V.O1, V.O2),
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.C, V.O, V.B),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.O, V.B),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.R, V.O, V.N, V.O1, V.O2, V.C),
                 )
             ]
         )
@@ -297,7 +297,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(self.oxygen)(V.O),
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.O, V.R, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.O, V.R, V.B1),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.R, V.R1, V.R2, V.O),
                 )
             ]
         )
@@ -316,7 +316,7 @@ class NitrogenGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.C1, V.C2, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.C1, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.C2, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C1, V.C2, V.N),
                 )
             ]
         )

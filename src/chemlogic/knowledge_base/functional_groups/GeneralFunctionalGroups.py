@@ -99,7 +99,7 @@ class GeneralFunctionalGroups(KnowledgeBase):
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.X, V.Y2),
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.X, V.Y3),
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.X, V.Y4),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.Y1, V.Y2, V.Y3, V.Y4),
                 )
             ]
         )
@@ -152,7 +152,7 @@ class GeneralFunctionalGroups(KnowledgeBase):
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.C, V.R2, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.R1, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.R2, V.B2),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.R1, V.R2, V.C, V.O),
                 )
             ]
         )

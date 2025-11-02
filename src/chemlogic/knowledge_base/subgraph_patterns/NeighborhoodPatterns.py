@@ -48,7 +48,7 @@ class NeighborhoodPatterns(KnowledgeBase):
                 [R.get(self.connection)(*conn) for conn in connections]
                 + node_embeddings
                 + edge_embeddings
-                + [R.special.alldiff(...)]
+                + [R.special.alldiff(V.X, *(f"X{i}" for i in range(n)))]
             )
             self.add_rules([R.get(f"{self.layer_name}_{n}_nbhood")(V.X) <= nbhood_body])
             nbhoods += [f"{self.layer_name}_{n}_nbhood"]
@@ -66,7 +66,7 @@ class NeighborhoodPatterns(KnowledgeBase):
             + [R.get(self.connection)(*conn) for conn in chiral_connections]
             + chiral_edge_embeddings
             + chiral_node_embeddings
-            + [R.special.alldiff(...)]
+            + [R.special.alldiff(V.C, *(f"X{i}" for i in range(4)))]
         )
         self.add_rules(
             [R.get(f"{self.layer_name}_chiral_center")(V.C) <= chiral_center_body]
