@@ -75,7 +75,7 @@ class TestPipeline(unittest.TestCase):
         mock_evaluator.return_value = mock_eval
 
         pipeline = Pipeline(**self.default_args)
-        pipeline._train_model = lambda e, d, ep: [0.1, 0.2, 0.15]
+        pipeline._train_model = lambda e, d, ep, es, ed: [0.1, 0.2, 0.15]
         pipeline._evaluate_model = lambda e, d: (0.1, 0.9)
 
         result = pipeline.train_test_cycle()
@@ -125,3 +125,6 @@ class TestPipeline(unittest.TestCase):
 
         self.assertIsInstance(loss, float)
         self.assertIsInstance(auroc, float)
+
+# TODO: add tests for regression task and inference function, and scaling
+# TODO: try instead of scaling, setting transformation identity on the output layer (https://github.com/LukasZahradnik/PyNeuraLogic/issues/63)
