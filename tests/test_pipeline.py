@@ -125,3 +125,85 @@ class TestPipeline(unittest.TestCase):
 
         self.assertIsInstance(loss, float)
         self.assertIsInstance(auroc, float)
+
+    @patch("chemlogic.datasets.datasets.get_dataset")
+    @patch("chemlogic.models.models.get_model")
+    def test_inference_raises_if_not_trained(self, mock_get_model, mock_get_dataset):
+        """If the pipeline has not been trained (no evaluator), inference should raise ValueError."""
+        mock_get_dataset.return_value = MagicMock(
+            node_embed="node",
+            edge_embed="edge",
+            connection="connects",
+            bond_types=["bond"],
+            halogens=[],
+            single_bond="sb",
+            double_bond="db",
+            triple_bond="tb",
+            aromatic_bonds=[],
+            carbon="C",
+            hydrogen="H",
+            oxygen="O",
+            nitrogen="N",
+            sulfur="S",
+            key_atom_type=[],
+            atom_types=[],
+            aliphatic_bonds=[],
+            data=[],
+        )
+        mock_get_model.return_value = []
+
+        pipeline = Pipeline(**self.default_args)
+
+        # ensure evaluator attribute is not present
+        if hasattr(pipeline, "evaluator"):
+            delattr(pipeline, "evaluator")
+
+        with self.assertRaises(ValueError):
+            pipeline.inference(["C"])
+
+    @patch("chemlogic.datasets.datasets.get_dataset")
+    @patch("chemlogic.models.models.get_model")
+    def test_inference_returns_predictions(self, mock_get_model, mock_get_dataset):
+        """Inference should return the predictions produced by the evaluator in the same order."""
+        # Dataset used for Pipeline.__init__
+        mock_get_dataset.return_value = MagicMock(
+            node_embed="node",
+            edge_embed="edge",
+            connection="connects",
+            bond_types=["bond"],
+            halogens=[],
+            single_bond="sb",
+            double_bond="db",
+            triple_bond="tb",
+            aromatic_bonds=[],
+            carbon="C",
+            hydrogen="H",
+            oxygen="O",
+            nitrogen="N",
+            sulfur="S",
+            key_atom_type=[],
+            atom_types=[],
+            aliphatic_bonds=[],
+            data=[],
+            dataset_name="mutagen",
+            param_size=4,
+        )
+        mock_get_model.return_value = []
+
+        pipeline = Pipeline(**self.default_args)
+
+        # Create a fake evaluator and built dataset for inference
+        evaluator = MagicMock()
+        built_dataset = MagicMock()
+        built_dataset.samples = [1, 2, 3]
+        evaluator.build_dataset.return_value = built_dataset
+        # evaluator.test will be iterated over; return same-length iterable
+        evaluator.test.return_value = [0.1, 0.2, 0.3]
+
+        pipeline.evaluator = evaluator
+
+        smiles = ["C1=CC=CC=C1", "O", "N"]
+        preds = pipeline.inference(smiles)
+
+        self.assertEqual(preds, [0.1, 0.2, 0.3])
+
