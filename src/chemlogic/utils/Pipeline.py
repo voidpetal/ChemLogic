@@ -387,10 +387,6 @@ class Pipeline:
             self.evaluator.test(built_dataset, generator=False),
             strict=False,
         ):
-            # Inverse scaling if applicable
-            if hasattr(self.dataset, "scaling_factor") and self.dataset.scaling_factor:
-                min_label, max_label = self.dataset.scaling_factor
-                y_hat = y_hat * (max_label - min_label) + min_label
             predictions.append(y_hat)
 
         return predictions
