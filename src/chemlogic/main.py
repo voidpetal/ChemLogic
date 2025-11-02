@@ -103,4 +103,4 @@ def main(
         mlflow.log_metric("test_loss", test_loss)
         mlflow.log_metric("metric", metric)
 
-    return metric
+    return metric, pipeline
