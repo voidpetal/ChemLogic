@@ -46,6 +46,7 @@ class CWNet(Model):
                     R.get(self.output_layer_name)[self.output_param_size]
                     <= R.get(f"{self.model_name}")(V.X)
                 )
+                | [self.output_layer_transformation]
             ]
         )
 

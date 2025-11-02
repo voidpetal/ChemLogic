@@ -25,3 +25,6 @@ dist/
 
 # Notebook garbage
 **/target
+
+# Testing artifacts
+test_*.txt

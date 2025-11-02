@@ -165,7 +165,7 @@ def get_dataset_and_mappings(
 
     if labels is not None:
         for graph, label in zip(graphs, labels, strict=False):
-            if isinstance(label, int):
+            if isinstance(label, (int, float)):
                 graph.y = label
             elif isinstance(label, list):
                 graph.y = label[0]
