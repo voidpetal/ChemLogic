@@ -69,7 +69,7 @@ def main(
             task=task
         )
 
-        train_loss, test_loss, auroc_score, evaluator = pipeline.train_test_cycle(
+        train_loss, test_loss, metric, evaluator = pipeline.train_test_cycle(
             lr, epochs, split, batches=batches
         )
 
@@ -101,6 +101,6 @@ def main(
 
         mlflow.log_metric("train_loss", train_loss)
         mlflow.log_metric("test_loss", test_loss)
-        mlflow.log_metric("auroc", auroc_score)
+        mlflow.log_metric("metric", metric)
 
-    return test_loss
+    return metric
