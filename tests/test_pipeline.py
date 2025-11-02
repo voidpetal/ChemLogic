@@ -125,6 +125,3 @@ class TestPipeline(unittest.TestCase):
 
         self.assertIsInstance(loss, float)
         self.assertIsInstance(auroc, float)
-
-# TODO: add tests for regression task and inference function, and scaling
-# TODO: try instead of scaling, setting transformation identity on the output layer (https://github.com/LukasZahradnik/PyNeuraLogic/issues/63)
