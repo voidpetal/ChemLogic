@@ -37,7 +37,7 @@ class CollectivePatterns(KnowledgeBase):
                     R.get(self.edge_embed)(V.B1)[self.param_size],
                     R.get(self.edge_embed)(V.B2)[self.param_size],
                     R.get(self.node_embed)(V.X)[self.param_size],
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.X, V.Y, V.Z),
                 )
             ]
         )
@@ -55,7 +55,7 @@ class CollectivePatterns(KnowledgeBase):
                     R.get(self.edge_embed)(V.B1)[self.param_size],
                     R.get(self.edge_embed)(V.B2)[self.param_size],
                     R.get(self.node_embed)(V.X)[self.param_size],
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.X, V.Y, V.Z),
                 )
             ]
         )

@@ -29,7 +29,7 @@ class SulfurGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.N, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.S, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.S, V.R, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C, V.N, V.S, V.R),
                 )
             ]
         )
@@ -49,7 +49,7 @@ class SulfurGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.S, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.N, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.N, V.R, V.B3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C, V.N, V.S, V.R),
                 )
             ]
         )
@@ -66,7 +66,7 @@ class SulfurGroups(KnowledgeBase):
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.S, V.R2, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.R1, V.S, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.S, V.R2, V.B2),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.R1, V.R2, V.S),
                 )
             ]
         )
@@ -86,7 +86,7 @@ class SulfurGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_bond_message")(V.C1, V.S1, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.S2, V.C2, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.S1, V.S2, V.B12),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C1, V.C2, V.S1, V.S2),
                 )
             ]
         )
@@ -104,7 +104,7 @@ class SulfurGroups(KnowledgeBase):
                     R.get(f"{self.layer_name}_single_bonded")(V.S, V.H, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.C, V.S, V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.S, V.H, V.B2),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.C, V.S, V.H),
                 )
             ]
         )

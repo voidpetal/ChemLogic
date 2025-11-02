@@ -42,7 +42,7 @@ class YShapePattern(KnowledgeBase):
                     R.get(self.node_embed)(V.X2)[self.param_size],
                     R.get(self.node_embed)(V.X3)[self.param_size],
                     R.get(self.node_embed)(V.X4)[self.param_size],
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.X1, V.X2, V.X3, V.X4),
                 )
             ]
         )
@@ -55,7 +55,7 @@ class YShapePattern(KnowledgeBase):
                     R.get(self.connection)(V.X1, V.X2, V.B1),
                     R.get(self.double_bond)(V.B1),
                     R.get(f"{self.layer_name}_y_subgraph")(V.X1, V.X2, V.X3, V.X4),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.X1, V.X2, V.X3, V.X4),
                 )
             ]
         )
@@ -67,7 +67,7 @@ class YShapePattern(KnowledgeBase):
                 <= (
                     R.get(f"{self.layer_name}_y_bond")(V.Y1, V.Y2, V.X1, V.X2),
                     R.get(f"{self.layer_name}_y_bond")(V.Z1, V.Z2, V.X2, V.X3),
-                    R.special.alldiff(...),
+                    R.special.alldiff(V.X1, V.X2, V.X3),
                 )
             ]
         )
