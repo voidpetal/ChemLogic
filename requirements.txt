@@ -2,10 +2,10 @@
 # Please do not edit it manually.
 
 mlflow>=2.14.0
-neuralogic==0.7.16
+neuralogic==0.8.0
 optuna>=4.3.0
 pysmiles>=2.0.0
 RDKit>=2025.3.2
 scikit-learn>=1.6.1
-torch==2.7.1
+torch>=2.7.1
 torch-geometric>=2.6.1
