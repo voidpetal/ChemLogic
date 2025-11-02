@@ -1,4 +1,4 @@
-from neuralogic.core import R, V, Transformation
+from neuralogic.core import R, V
 
 from chemlogic.models.Model import Model
 from chemlogic.utils.ChemTemplate import ChemTemplate as Template
@@ -44,8 +44,9 @@ class CWNet(Model):
             [
                 (
                     R.get(self.output_layer_name)[self.output_param_size]
-                    <= R.get(f"{self.model_name}")(V.X) 
-                ) | [self.output_layer_transformation]
+                    <= R.get(f"{self.model_name}")(V.X)
+                )
+                | [self.output_layer_transformation]
             ]
         )
 

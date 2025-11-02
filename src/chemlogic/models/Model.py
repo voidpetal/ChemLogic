@@ -1,4 +1,4 @@
-from neuralogic.core import R, V, Transformation
+from neuralogic.core import R, Transformation, V
 
 from chemlogic.utils.ChemTemplate import ChemTemplate as Template
 
@@ -92,6 +92,7 @@ class Model(Template):
                 (
                     R.get(self.output_layer_name)[self.output_param_size]
                     <= R.get(f"{self.model_name}")(V.X)
-                ) | [self.output_layer_transformation]
+                )
+                | [self.output_layer_transformation]
             ]
         )

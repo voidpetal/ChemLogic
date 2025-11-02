@@ -1,11 +1,10 @@
 from enum import Enum
 
-import numpy as np
-from neuralogic.core import R, Transformation, Settings, V
+from neuralogic.core import R, Settings, Transformation, V
 from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy, ErrorFunction
 from neuralogic.optim import Adam, Optimizer
-from sklearn.metrics import roc_auc_score, r2_score
+from sklearn.metrics import r2_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 
 from chemlogic.datasets.datasets import get_dataset
@@ -84,7 +83,7 @@ class Pipeline:
 
         if task not in ["regression", "classification"]:
             raise ValueError("Task must be either 'regression' or 'classification'.")
-        
+
         transformation = None
         if task == "classification":
             transformation = Transformation.SIGMOID
@@ -231,7 +230,7 @@ class Pipeline:
 
         self.dataset = dataset
         self.template = dataset + template
-        
+
         self.task = task
 
     def train_test_cycle(
@@ -273,9 +272,15 @@ class Pipeline:
             built_dataset.samples, train_size=split_ratio, random_state=42
         )
         print("Training model")
-        train_losses = self._train_model(evaluator, train_dataset, settings.epochs, early_stopping_rounds, early_stopping_threshold)
+        train_losses = self._train_model(
+            evaluator,
+            train_dataset,
+            settings.epochs,
+            early_stopping_rounds,
+            early_stopping_threshold,
+        )
         test_loss, other_metric = self._evaluate_model(evaluator, test_dataset)
-        
+
         # Save the trained model
         self.evaluator = evaluator
 

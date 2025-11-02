@@ -80,14 +80,23 @@ def get_chem_rules(
 
     if param_size == 1:
         template.add_rules(
-            [(R.get(output_layer_name)[param_size,] <= R.get(f"{layer_name}_chem_rules")) | [output_layer_transformation]]
+            [
+                (
+                    R.get(output_layer_name)[param_size,]
+                    <= R.get(f"{layer_name}_chem_rules")
+                )
+                | [output_layer_transformation]
+            ]
         )
         param_size = (param_size,)
     else:
         template.add_rules(
             [
-                (R.get(output_layer_name)[1, param_size]
-                <= R.get(f"{layer_name}_chem_rules")) | [output_layer_transformation]
+                (
+                    R.get(output_layer_name)[1, param_size]
+                    <= R.get(f"{layer_name}_chem_rules")
+                )
+                | [output_layer_transformation]
             ]
         )
         param_size = (param_size, param_size)
