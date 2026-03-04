@@ -40,6 +40,12 @@ ChemLogic requires Python 3.11 and Java >=1.8. For visualization `graphviz` is r
 
 All dependencies are listed in `pyproject.toml`.
 
+## 📖 Documentation
+
+- [SPEC.md](docs/SPEC.md) - API reference and configuration details
+- [DESIGN.md](docs/DESIGN.md) - Architecture and design rationale
+- [REQUIREMENTS.md](docs/REQUIREMENTS.md) - Functional and non-functional requirements
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please see CONTRIBUTING.md for guidelines on how to get started.
