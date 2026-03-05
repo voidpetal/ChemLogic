@@ -5,7 +5,7 @@ description = "ChemLogic is a neurosymbolic framework that integrates relational
 authors = [
     {name = "Kai Hodzic", email = "hodzic.e.k@outlook.com"},
 ]
-requires-python = ">=3.11"
+requires-python = "==3.11.*"
 dependencies = [
     "neuralogic==0.8.0",
     "optuna>=4.3.0",
