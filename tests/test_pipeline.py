@@ -75,7 +75,7 @@ class TestPipeline(unittest.TestCase):
         mock_evaluator.return_value = mock_eval
 
         pipeline = Pipeline(**self.default_args)
-        pipeline._train_model = lambda e, d, ep, es, ed: [0.1, 0.2, 0.15]
+        pipeline._train_model = lambda e, d, ep, es, ed, **kwargs: [0.1, 0.2, 0.15]
         pipeline._evaluate_model = lambda e, d: (0.1, 0.9)
 
         result = pipeline.train_test_cycle()
@@ -206,4 +206,3 @@ class TestPipeline(unittest.TestCase):
         preds = pipeline.inference(smiles)
 
         self.assertEqual(preds, [0.1, 0.2, 0.3])
-
