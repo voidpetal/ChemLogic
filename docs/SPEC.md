@@ -7,11 +7,12 @@ Technical reference for APIs and configuration. For introduction and installatio
 ## Table of Contents
 
 1. [Datasets](#datasets)
-2. [Models](#models)
-3. [Knowledge Base](#knowledge-base)
-4. [Pipeline](#pipeline)
-5. [Architecture Types](#architecture-types)
-6. [Configuration Reference](#configuration-reference)
+2. [Extended Features](#extended-features)
+3. [Models](#models)
+4. [Knowledge Base](#knowledge-base)
+5. [Pipeline](#pipeline)
+6. [Architecture Types](#architecture-types)
+7. [Configuration Reference](#configuration-reference)
 
 ---
 
@@ -50,12 +51,227 @@ pipeline = Pipeline(
 )
 ```
 
+### Custom Datasets via DataFrame (with Extended Features)
+
+```python
+import pandas as pd
+from chemlogic.datasets import SmilesDataset
+
+# DataFrame with SMILES, target, and additional numeric columns
+df = pd.DataFrame({
+    "smiles": ["CCO", "CC(=O)O", "c1ccccc1"],
+    "target": [0, 1, 0],
+    "mol_weight": [46.07, 60.05, 78.11],  # Graph-level feature
+    "log_p": [-0.18, -0.17, 2.13],         # Graph-level feature
+})
+
+dataset = SmilesDataset(
+    df,
+    atom_features=["formal_charge", "degree"],  # Node-level features
+    bond_features=["is_aromatic"],               # Edge-level features
+)
+```
+
 ### Dataset Structure
 
 Each dataset defines:
 - **Atom types**: Predicates for elements (e.g., `c`, `o`, `n`, `s`, `h`)
 - **Bond types**: Predicates for bond orders (single, double, triple, aromatic)
-- **Connectivity**: `connection(X, Y, B)` predicate linking atoms X and Y via bond B
+- **Connectivity**: `bond(X, Y, B)` predicate linking atoms X and Y via bond B
+- **Extended features**: Optional atom, bond, and graph-level features as valued predicates
+
+---
+
+## Extended Features
+
+ChemLogic supports three levels of extended features that can enhance model accuracy by incorporating additional chemical information beyond basic atom and bond types.
+
+### Feature Levels
+
+| Level | Scope | Example | Format |
+|-------|-------|---------|--------|
+| **Graph-level** | Entire molecule | Molecular weight, LogP | `<value> feature(graph_node)` |
+| **Node-level** | Individual atoms | Formal charge, degree | `<value> feature(atom_id)` |
+| **Edge-level** | Individual bonds | Is aromatic, is conjugated | `<value> feature(bond_id)` |
+
+### Graph-Level Features (via Synthetic Node)
+
+Graph-level features are integrated via a **synthetic graph node** that connects to all atoms:
+
+```
+Molecule: C-C-O (ethanol)
+
+     [C]----[C]----[O]        Real atoms (0, 1, 2)
+      |      |      |
+      +------+------+
+             |
+           [G]                Synthetic graph node
+             |
+    mol_weight=46.07          Graph features on synthetic node
+    log_p=-0.18
+```
+
+**Architecture benefits:**
+- Features flow through GNN message-passing naturally
+- Graph features don't overpower node-level information
+- No atom type on synthetic node → KB chemical rules won't trigger
+- Balanced contribution alongside atom embeddings
+
+**Usage:**
+```python
+# Via DataFrame - extra numeric columns become graph features
+df = pd.DataFrame({
+    "smiles": ["CCO", "CC"],
+    "target": [1, 0],
+    "mol_weight": [46.07, 30.07],  # Automatically detected as graph feature
+})
+dataset = SmilesDataset(df)
+
+# Alternative: Broadcast mode (adds graph features to all atoms, no synthetic node)
+dataset = SmilesDataset(df, broadcast_graph_features=True)
+```
+
+**Broadcast Mode:**
+
+Instead of a synthetic node, broadcast mode adds graph features directly to all atoms in the molecule. Each atom receives the same graph-level feature values:
+
+```
+Molecule: C-C-O (ethanol) with broadcast_graph_features=True
+
+[C]----[C]----[O]
+ |      |      |
+mol_weight(0)=46.07
+mol_weight(1)=46.07
+mol_weight(2)=46.07
+```
+
+Use broadcast mode when you want simpler architecture without virtual nodes.
+
+### Node-Level Features (Atom Features)
+
+RDKit atom properties extracted as valued predicates on each atom.
+
+| Feature | Description | Type |
+|---------|-------------|------|
+| `formal_charge` | Formal charge of atom | int |
+| `num_radical_electrons` | Number of radical electrons | int |
+| `is_aromatic` | Whether atom is aromatic | bool (0/1) |
+| `hybridization` | Hybridization state (SP, SP2, SP3, etc.) | int |
+| `total_num_hs` | Total number of hydrogens | int |
+| `degree` | Number of bonded neighbors | int |
+| `is_in_ring` | Whether atom is in a ring | bool (0/1) |
+| `chiral_tag` | Chirality tag | int |
+
+**Usage:**
+```python
+# Enable specific features
+dataset = SmilesDataset(smiles_list, labels, atom_features=["formal_charge", "degree"])
+
+# Enable all available features
+dataset = SmilesDataset(smiles_list, labels, atom_features="all")
+```
+
+### Edge-Level Features (Bond Features)
+
+RDKit bond properties extracted as valued predicates on each bond.
+
+| Feature | Description | Type |
+|---------|-------------|------|
+| `is_aromatic` | Whether bond is aromatic | bool (0/1) |
+| `is_conjugated` | Whether bond is conjugated | bool (0/1) |
+| `is_in_ring` | Whether bond is in a ring | bool (0/1) |
+| `stereo` | Stereochemistry type | int |
+
+**Usage:**
+```python
+# Enable specific features
+dataset = SmilesDataset(smiles_list, labels, bond_features=["is_aromatic", "is_in_ring"])
+
+# Enable all available features
+dataset = SmilesDataset(smiles_list, labels, bond_features="all")
+```
+
+### Zero-Value Optimization
+
+Features with value `0` are automatically omitted from the dataset. Since zero-valued predicates contribute nothing to neural network computation, this optimization:
+- Reduces dataset size significantly (especially for sparse features)
+- Improves training speed
+- Maintains mathematical equivalence
+
+### Combined Example
+
+```python
+import pandas as pd
+from chemlogic.datasets import SmilesDataset
+from chemlogic.models import GNN
+
+# Dataset with all feature levels
+df = pd.DataFrame({
+    "smiles": ["c1ccccc1", "CCO", "CC(=O)O"],
+    "target": [0.5, 1.2, 0.8],
+    "mol_weight": [78.11, 46.07, 60.05],
+    "tpsa": [0.0, 20.23, 37.30],
+})
+
+dataset = SmilesDataset(
+    df,
+    atom_features=["formal_charge", "is_aromatic", "degree"],
+    bond_features=["is_aromatic", "is_in_ring"],
+)
+
+# Template rules created:
+# - atom_embed(A) <= c(A)           # Atom type
+# - atom_embed(A) <= formal_charge(A)  # Atom feature
+# - atom_embed(A) <= is_aromatic(A)    # Atom feature
+# - atom_embed(A) <= degree(A)         # Atom feature
+# - atom_embed(G) <= mol_weight(G)     # Graph feature on synthetic node
+# - atom_embed(G) <= tpsa(G)           # Graph feature on synthetic node
+# - bond_embed(B) <= b_1(B)            # Bond type
+# - bond_embed(B) <= is_aromatic(B)    # Bond feature
+# - bond_embed(B) <= is_in_ring(B)     # Bond feature
+# - bond_embed(B) <= graph_bond(B)     # Synthetic node connections
+```
+
+### Experiment Results
+
+Extended features were validated on a **melting point prediction** regression task using 300 molecules (240 train / 60 test) with 2000 training epochs.
+
+#### Atom & Bond Features
+
+| Configuration | R² | MAE | RMSE | Improvement |
+|---------------|-----|-----|------|-------------|
+| Baseline (structure only) | 0.232 | 53.4 | 78.9 | — |
+| Atom features | 0.279 | 47.6 | 76.5 | **+20.4%** |
+| Bond features | 0.297 | 49.7 | 75.5 | **+28.2%** |
+| Atom + Bond | 0.287 | 49.5 | 76.1 | **+23.7%** |
+
+#### Graph Features (Multi-seed Validation)
+
+Graph-level features (30 Group contribution columns) were tested with two approaches:
+
+| Seed | Baseline R² | Synthetic Node R² | Broadcast R² |
+|------|-------------|-------------------|--------------|
+| 42   | 0.231 | 0.430 (+86%) | 0.402 (+74%) |
+| 123  | 0.335 | 0.425 (+27%) | 0.425 (+27%) |
+| 456  | 0.127 | 0.185 (+46%) | 0.125 (-2%) |
+| **Avg** | **0.231** | **0.347 (+50%)** | **0.317 (+37%)** |
+
+- **Synthetic Node**: Adds a virtual node connected to all atoms via `graph_bond` edges
+- **Broadcast**: Adds graph features directly to all atoms (no virtual node)
+
+Both approaches show improvement over baseline. Use `broadcast_graph_features=True` in `SmilesDataset` to enable broadcast mode.
+
+**Key findings:**
+
+1. **Node-level features (atoms) improve accuracy** — Adding RDKit atom properties like formal charge, degree, hybridization, etc. provides ~20% improvement in R² score.
+
+2. **Edge-level features (bonds) improve accuracy** — Bond properties like aromaticity, conjugation, and ring membership provide ~28% improvement.
+
+3. **Combined features are effective** — Using both atom and bond features together gives solid improvement (~24%), though not strictly additive.
+
+4. **Graph-level features show promise** — Both synthetic node and broadcast approaches improve accuracy on average. The synthetic node approach shows slightly better results but adds architectural complexity.
+
+**Recommendation:** Start with atom and/or bond features for immediate accuracy gains. Graph-level features can provide additional improvement, with the synthetic node approach showing the best results in our experiments.
 
 ---
 
@@ -151,7 +367,9 @@ Pipeline(
     funnel: bool = False,
     smiles_list: list[str] = None,
     labels: list[int] = None,
-    task: str = "classification"
+    task: str = "classification",
+    atom_features: str | list[str] | None = None,
+    bond_features: str | list[str] | None = None,
 )
 ```
 
@@ -178,6 +396,28 @@ predictions = pipeline.inference(smiles_list=["CCO", "CC(=O)O"])
 
 ```python
 pipeline.template.draw()  # Requires graphviz
+```
+
+### Example with Extended Features
+
+```python
+from chemlogic.utils.Pipeline import Pipeline
+
+# Pipeline with atom and bond features
+pipeline = Pipeline(
+    dataset_name="my_dataset",
+    model_name="gnn",
+    param_size=8,
+    layers=2,
+    smiles_list=["CCO", "c1ccccc1", "CC(=O)O"],
+    labels=[0, 1, 0],
+    task="classification",
+    atom_features=["formal_charge", "is_aromatic", "degree"],
+    bond_features=["is_aromatic", "is_in_ring"],
+)
+
+train_loss, test_loss, auroc, evaluator = pipeline.train_test_cycle(epochs=50)
+print(f"AUROC: {auroc:.4f}")
 ```
 
 ---

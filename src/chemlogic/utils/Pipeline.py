@@ -51,6 +51,8 @@ class Pipeline:
         smiles_list: list[str] = None,
         labels: list[int] = None,
         task: str = "classification",
+        atom_features: str | list[str] | None = None,
+        bond_features: str | list[str] | None = None,
     ):
         """
         Initialize the test setup by configuring the dataset and model along with optional chemical rules and subgraphs.
@@ -69,6 +71,14 @@ class Pipeline:
         :param smiles_list: A list of smiles strings to build the dataset with.
         :param labels: A list of integer labels to build the dataset with.
         :param task: The type of task, either "classification" or "regression". - default: "classification"
+        :param atom_features: Atom features to extract as node-level predicates.
+            - None: No additional features (default, backward compatible)
+            - 'all': Extract all 8 available RDKit atom features
+            - list[str]: Extract only specified features (e.g., ['formal_charge', 'is_aromatic'])
+        :param bond_features: Bond features to extract as edge-level predicates.
+            - None: No additional features (default, backward compatible)
+            - 'all': Extract all 4 available RDKit bond features
+            - list[str]: Extract only specified features (e.g., ['is_aromatic', 'is_conjugated'])
         :return: A tuple containing the template and dataset.
         """
 
@@ -78,7 +88,12 @@ class Pipeline:
             )
 
         if smiles_list:
-            dataset_args = {"smiles_list": smiles_list, "labels": labels}
+            dataset_args = {
+                "smiles_list": smiles_list,
+                "labels": labels,
+                "atom_features": atom_features,
+                "bond_features": bond_features,
+            }
         else:
             dataset_args = {"examples": examples, "queries": queries}
 
