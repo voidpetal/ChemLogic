@@ -81,6 +81,9 @@ distribution = true
 
 [tool.pdm.scripts]
 test = "pytest"
+lint = "ruff check src/ --fix"
+format = "ruff format"
+prepare = {composite = ["lint", "format", "test"]}
 
 [dependency-groups]
 dev = [
