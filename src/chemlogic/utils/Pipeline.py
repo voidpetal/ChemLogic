@@ -1,4 +1,6 @@
+from datetime import datetime
 from enum import Enum
+from pathlib import Path
 
 from neuralogic.core import R, Settings, Transformation, V
 from neuralogic.nn import get_evaluator
@@ -11,6 +13,7 @@ from chemlogic.datasets.datasets import get_dataset
 from chemlogic.knowledge_base.chemrules import get_chem_rules
 from chemlogic.knowledge_base.subgraphs import get_subgraphs
 from chemlogic.models.models import get_model
+from chemlogic.utils.Checkpoint import Checkpoint
 from chemlogic.utils.ChemTemplate import ChemTemplate
 
 
@@ -233,6 +236,24 @@ class Pipeline:
 
         self.task = task
 
+        # Store architecture parameters for checkpoint saving
+        self._architecture_params = {
+            "dataset_name": dataset_name,
+            "model_name": model_name,
+            "param_size": param_size,
+            "layers": layers,
+            "max_depth": max_depth,
+            "max_subgraph_depth": max_subgraph_depth,
+            "max_cycle_size": max_cycle_size,
+            "subgraphs": subgraphs,
+            "chem_rules": chem_rules,
+            "architecture": architecture.value
+            if isinstance(architecture, ArchitectureType)
+            else architecture,
+            "funnel": funnel,
+            "task": task,
+        }
+
     def train_test_cycle(
         self,
         lr: float = 0.001,
@@ -243,6 +264,8 @@ class Pipeline:
         batches: int = 1,
         early_stopping_threshold: float = 0.001,
         early_stopping_rounds: int = 10,
+        checkpoint_every: int | None = None,
+        checkpoint_dir: str | Path | None = None,
     ):
         """
         Train and test the model based on the provided template and dataset.
@@ -255,6 +278,8 @@ class Pipeline:
         :param batches: Number of batches to build the dataset in.
         :param early_stopping_threshold: Minimum improvement threshold to reset early stopping counter.
         :param early_stopping_rounds: Number of rounds without improvement to trigger early stopping.
+        :param checkpoint_every: Save checkpoint every N epochs. If None, no checkpoints saved during training.
+        :param checkpoint_dir: Directory for checkpoint files. Defaults to checkpoints/{dataset_name}/
         :return: The training loss, testing loss, AUROC validation score for classification or R2 for regression tasks and the evaluator object.
         """
         if error_function is None:
@@ -278,6 +303,8 @@ class Pipeline:
             settings.epochs,
             early_stopping_rounds,
             early_stopping_threshold,
+            checkpoint_every=checkpoint_every,
+            checkpoint_dir=checkpoint_dir,
         )
         test_loss, other_metric = self._evaluate_model(evaluator, test_dataset)
 
@@ -293,6 +320,8 @@ class Pipeline:
         epochs,
         early_stopping_rounds=10,
         early_stopping_threshold=0.001,
+        checkpoint_every: int | None = None,
+        checkpoint_dir: str | Path | None = None,
     ):
         """
         Train the model on the training dataset.
@@ -302,6 +331,8 @@ class Pipeline:
         :param epochs: Number of training epochs.
         :param early_stopping_rounds: Number of rounds without improvement to trigger early stopping.
         :param early_stopping_threshold: Minimum improvement threshold to reset early stopping counter.
+        :param checkpoint_every: Save checkpoint every N epochs. If None, no checkpoints saved.
+        :param checkpoint_dir: Directory for checkpoint files.
         :return: List of average training losses per epoch.
         """
         average_losses = []
@@ -321,6 +352,26 @@ class Pipeline:
             print(
                 f"Epoch {epoch + 1}/{epochs} | Train loss: {train_loss} | Best loss: {best_loss} | Difference: {best_loss - train_loss}"
             )
+
+            # Save checkpoint if checkpoint_every is set
+            if checkpoint_every and (epoch + 1) % checkpoint_every == 0:
+                base_dir = (
+                    Path(checkpoint_dir)
+                    if checkpoint_dir
+                    else Path("checkpoints") / self.dataset.dataset_name
+                )
+                checkpoint_path = base_dir / f"epoch_{epoch + 1}"
+                Checkpoint.save(
+                    evaluator,
+                    checkpoint_path,
+                    architecture=self._architecture_params,
+                    training_state={
+                        "epoch": epoch + 1,
+                        "train_loss": train_loss,
+                        "best_loss": best_loss,
+                    },
+                )
+                print(f"Checkpoint saved: {checkpoint_path}")
 
             if rounds_without_improvement >= early_stopping_rounds:
                 print(f"Early stopping triggered after {epoch + 1} epochs.")
@@ -395,3 +446,135 @@ class Pipeline:
             predictions.append(y_hat)
 
         return predictions
+
+    # -------------------------------------------------------------------------
+    # Checkpoint methods
+    # -------------------------------------------------------------------------
+
+    def save_checkpoint(
+        self,
+        filepath: str | Path | None = None,
+        *,
+        training_state: dict | None = None,
+        metadata: dict | None = None,
+    ) -> tuple[Path, Path]:
+        """
+        Save the trained model to a checkpoint file.
+
+        Args:
+            filepath: Path for checkpoint files (without extension).
+                     If None, auto-generates path in checkpoints/{dataset_name}/{timestamp}
+            training_state: Optional dict with training state (epoch, losses, etc.)
+                           for resuming training later.
+            metadata: Optional dict with additional metadata (description, etc.)
+
+        Returns:
+            Tuple of (safetensors_path, json_path) for the created files.
+
+        Raises:
+            ValueError: If model hasn't been trained yet.
+        """
+        if not hasattr(self, "evaluator"):
+            raise ValueError(
+                "The model has not been trained yet. Please train the model before saving a checkpoint."
+            )
+
+        # Auto-generate filepath if not provided
+        if filepath is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filepath = Path("checkpoints") / self.dataset.dataset_name / timestamp
+
+        return Checkpoint.save(
+            self.evaluator,
+            filepath,
+            architecture=self._architecture_params,
+            training_state=training_state,
+            metadata=metadata,
+        )
+
+    @classmethod
+    def from_checkpoint(
+        cls,
+        filepath: str | Path,
+        *,
+        smiles_list: list[str] | None = None,
+        labels: list[int] | None = None,
+    ) -> "Pipeline":
+        """
+        Load a Pipeline from a checkpoint file.
+
+        Creates a new Pipeline with the same architecture as the saved model,
+        then loads the trained weights. The pipeline is ready for inference.
+
+        Args:
+            filepath: Path to checkpoint files (with or without extension).
+            smiles_list: Optional SMILES list for building dataset.
+                        If not provided, uses minimal dummy data.
+            labels: Optional labels for building dataset.
+                   Required if smiles_list is provided.
+
+        Returns:
+            A Pipeline instance with loaded weights, ready for inference.
+
+        Raises:
+            FileNotFoundError: If checkpoint files don't exist.
+            ValueError: If checkpoint is missing architecture or incompatible.
+        """
+        # Load checkpoint data
+        checkpoint_data = Checkpoint.load(filepath)
+
+        if "architecture" not in checkpoint_data:
+            raise ValueError(
+                "Checkpoint does not contain architecture information. "
+                "Cannot recreate Pipeline without architecture params."
+            )
+
+        arch = checkpoint_data["architecture"]
+
+        # Convert architecture string back to enum if needed
+        architecture_type = arch.get("architecture", "bare")
+        if isinstance(architecture_type, str):
+            architecture_type = ArchitectureType.from_string(architecture_type.upper())
+
+        # Use provided data or create minimal dummy data
+        # (needed to initialize the template, will be replaced by checkpoint weights)
+        if smiles_list is None:
+            # Use minimal dummy SMILES for initialization
+            smiles_list = ["C"]  # Methane - simplest molecule
+            labels = [0]
+
+        # Create pipeline with same architecture
+        pipeline = cls(
+            dataset_name=arch["dataset_name"],
+            model_name=arch["model_name"],
+            param_size=arch["param_size"],
+            layers=arch["layers"],
+            max_depth=arch.get("max_depth", 1),
+            max_subgraph_depth=arch.get("max_subgraph_depth", 5),
+            max_cycle_size=arch.get("max_cycle_size", 10),
+            subgraphs=arch.get("subgraphs"),
+            chem_rules=arch.get("chem_rules"),
+            architecture=architecture_type,
+            funnel=arch.get("funnel", False),
+            smiles_list=smiles_list,
+            labels=labels,
+            task=arch.get("task", "classification"),
+        )
+
+        # Build evaluator (needed to load weights)
+        # Use default settings - weights will be overwritten anyway
+        error_function = MSE if pipeline.task == "regression" else CrossEntropy
+        settings = Settings(
+            optimizer=Adam(lr=0.001),
+            epochs=1,
+            error_function=error_function(),
+        )
+        pipeline.evaluator = get_evaluator(pipeline.template, settings)
+
+        # Build dataset to initialize the evaluator's internal state
+        pipeline.evaluator.build_dataset(pipeline.dataset.data, batch_size=1)
+
+        # Load weights from checkpoint
+        Checkpoint.load_weights_into(pipeline.evaluator, filepath)
+
+        return pipeline

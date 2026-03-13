@@ -66,7 +66,7 @@ def main(
             funnel=funnel,
             smiles_list=smiles_list,
             labels=labels,
-            task=task
+            task=task,
         )
 
         train_loss, test_loss, metric, evaluator = pipeline.train_test_cycle(
