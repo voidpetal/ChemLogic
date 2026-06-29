@@ -51,7 +51,7 @@ keywords = [
 
 
 [project.urls]
-Homepage = "https://github.com/erhc/ChemLogic"
+Homepage = "https://github.com/voidpetal/ChemLogic"
 
 [build-system]
 requires = ["pdm-backend"]
@@ -75,6 +75,7 @@ select = [
 ignore = ["E501"]
 
 
+
 [tool.pdm]
 package-dir = "src"
 distribution = true
@@ -83,7 +84,15 @@ distribution = true
 test = "pytest"
 lint = "ruff check src/ --fix"
 format = "ruff format"
-prepare = {composite = ["lint", "format", "test"]}
+check = {composite = ["format", "lint", "test"]}
+clean = {shell = "rm -rf build dist *.egg-info .pytest_cache .mypy_cache .ruff_cache"}
+clear-notebooks = {shell = "find . -name '*.ipynb' -exec jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace {} \\;"}
+lock = "pdm lock"
+export = {shell = "pdm export -o requirements.txt --without-hashes --pyproject"}
+update-deps = {composite = ["lock", "export"]}
+build = "pdm build"
+bump = "pdm bump minor"
+prepare = {composite = ["check", "clear-notebooks", "update-deps", "build", "bump"]}
 
 [dependency-groups]
 dev = [
@@ -95,6 +104,7 @@ dev = [
     "nbconvert==7.16.6",
     "pdm-bump>=0.9.12",
     "pytest-xdist>=3.8.0",
+    "vulture>=2.16",
 ]
 
 [tool.pytest.ini_options]
