@@ -5,7 +5,7 @@ description = "ChemLogic is a neurosymbolic framework that integrates relational
 authors = [
     {name = "Kai Hodzic", email = "hodzic.e.k@outlook.com"},
 ]
-requires-python = ">=3.11"
+requires-python = "==3.11.*"
 dependencies = [
     "neuralogic==0.8.0",
     "optuna>=4.3.0",
@@ -15,6 +15,7 @@ dependencies = [
     "torch-geometric>=2.6.1",
     "mlflow>=2.14.0",
     "torch>=2.7.1",
+    "safetensors>=0.8.0",
 ]
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -87,12 +88,9 @@ format = "ruff format"
 check = {composite = ["format", "lint", "test"]}
 clean = {shell = "rm -rf build dist *.egg-info .pytest_cache .mypy_cache .ruff_cache"}
 clear-notebooks = {shell = "find . -name '*.ipynb' -exec jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace {} \\;"}
-lock = "pdm lock"
-export = {shell = "pdm export -o requirements.txt --without-hashes --pyproject"}
-update-deps = {composite = ["lock", "export"]}
 build = "pdm build"
 bump = "pdm bump minor"
-prepare = {composite = ["check", "clear-notebooks", "update-deps", "build", "bump"]}
+prepare = {composite = ["check", "clear-notebooks", "build", "bump"]}
 
 [dependency-groups]
 dev = [
@@ -104,7 +102,6 @@ dev = [
     "nbconvert==7.16.6",
     "pdm-bump>=0.9.12",
     "pytest-xdist>=3.8.0",
-    "vulture>=2.16",
 ]
 
 [tool.pytest.ini_options]

@@ -1,3 +1,5 @@
+from pandas import DataFrame
+
 from chemlogic.datasets.CustomDataset import CustomDataset
 from chemlogic.datasets.DHFR import DHFR
 from chemlogic.datasets.ER import ER
@@ -81,6 +83,9 @@ def get_dataset(
     queries=None,
     smiles_list: list[str] = None,
     labels: list[int] = None,
+    atom_features: str | list[str] | None = None,
+    bond_features: str | list[str] | None = None,
+    graph_features: dict | None = None,
 ):
     """
     Instantiates a dataset class based on its name.
@@ -92,6 +97,14 @@ def get_dataset(
         queries (str, optional): Path to queries file (for custom datasets).
         smiles_list (list[str], optional): A list of smiles strings to build the dataset with.
         labels (list[int], optional): A list of integer labels to build the dataset with.
+        atom_features (str | list[str] | None): Atom features to extract as node-level predicates.
+            - None: No additional features (default, backward compatible)
+            - 'all': Extract all 8 available RDKit atom features
+            - list[str]: Extract only specified features (e.g., ['formal_charge', 'is_aromatic'])
+        bond_features (str | list[str] | None): Bond features to extract as edge-level predicates.
+            - None: No additional features (default, backward compatible)
+            - 'all': Extract all 4 available RDKit bond features
+            - list[str]: Extract only specified features (e.g., ['is_aromatic', 'is_conjugated'])
     Returns:
         An instance of the dataset class.
 
@@ -99,12 +112,16 @@ def get_dataset(
         ValueError: If the dataset name is invalid.
     """
     # Dataset from SMILES list
-    if smiles_list:
+    if smiles_list is not None:
+        df = DataFrame(
+            {"smiles": smiles_list, "target": labels, **(graph_features or {})}
+        )
         return SmilesDataset(
-            smiles_list=smiles_list,
-            labels=labels,
+            smiles_list=df,
             param_size=param_size,
             dataset_name=dataset_name,
+            atom_features=atom_features,
+            bond_features=bond_features,
         )
 
     # Custom dataset with custom examples/queries files, or from custom datasets

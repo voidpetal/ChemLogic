@@ -28,3 +28,5 @@ dist/
 
 # Testing artifacts
 test_*.txt
+
+.planning/
