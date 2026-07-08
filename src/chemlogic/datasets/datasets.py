@@ -86,6 +86,7 @@ def get_dataset(
     atom_features: str | list[str] | None = None,
     bond_features: str | list[str] | None = None,
     graph_features: dict | None = None,
+    num_outputs: int = 1,
 ):
     """
     Instantiates a dataset class based on its name.
@@ -122,6 +123,7 @@ def get_dataset(
             dataset_name=dataset_name,
             atom_features=atom_features,
             bond_features=bond_features,
+            num_outputs=num_outputs,
         )
 
     # Custom dataset with custom examples/queries files, or from custom datasets
