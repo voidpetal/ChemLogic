@@ -37,6 +37,7 @@ class SmilesDataset(Dataset):
         atom_features: str | list[str] | None = None,
         bond_features: str | list[str] | None = None,
         broadcast_graph_features: bool = False,
+        num_outputs: int = 1,
     ):
         """
         Create a custom dataset from SMILES.
@@ -106,6 +107,7 @@ class SmilesDataset(Dataset):
         self.atom_features = atom_features
         self.bond_features = bond_features
         self.broadcast_graph_features = broadcast_graph_features
+        self.num_outputs = num_outputs
 
         # Placeholder for atom and bond types
         atom_types = ["placeholder"]
@@ -155,6 +157,7 @@ class SmilesDataset(Dataset):
             atom_features=self.atom_features,
             bond_features=self.bond_features,
             broadcast_graph_features=self.broadcast_graph_features,
+            num_outputs=self.num_outputs,
         )
         self.atom_types = atom_types
         self.bond_types = bond_types

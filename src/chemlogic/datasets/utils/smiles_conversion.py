@@ -228,6 +228,7 @@ def get_dataset_and_mappings(
     atom_features=None,
     bond_features=None,
     broadcast_graph_features=False,
+    num_outputs=1,
 ):
     """Create the neuralogic dataset from list of smiles and also dump it as text files.
 
@@ -283,10 +284,15 @@ def get_dataset_and_mappings(
 
     if labels is not None:
         for graph, label in zip(graphs, labels, strict=False):
-            if isinstance(label, (int, float)):
+            # One-hot encode scalar integer labels for multi-output models
+            if num_outputs > 1 and isinstance(label, (int, float)) and not isinstance(label, bool):
+                one_hot = [0.0] * num_outputs
+                one_hot[int(label)] = 1.0
+                graph.y = one_hot
+            elif isinstance(label, tuple):
+                graph.y = list(label)
+            else:
                 graph.y = label
-            elif isinstance(label, list):
-                graph.y = label[0]
 
     # Get the atom-element mappings - possible to get from networkx so convert from SMILES to networkx
     # networkx_graphs = [smiles_to_networkx(smile) for smile in smiles_list]

@@ -13,6 +13,7 @@ class Model(Template):
         edge_embed: str,
         connection: str,
         param_size: int,
+        num_outputs: int = 1,
         output_layer_name: str = "predict",
         output_layer_transformation=Transformation.IDENTITY,
         **kwargs,
@@ -56,10 +57,10 @@ class Model(Template):
 
         # Match the parameter size to the output dimension
         if param_size == 1:
-            self.output_param_size = (param_size,)
+            self.output_param_size = (num_outputs,)
             self.param_size = (param_size,)
         else:
-            self.output_param_size = (1, param_size)
+            self.output_param_size = (num_outputs, param_size)
             self.param_size = (param_size, param_size)
 
         self.create_template()

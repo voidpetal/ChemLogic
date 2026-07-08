@@ -30,6 +30,7 @@ def get_model(
     connection: str,
     param_size: int,
     output_layer_name: str,
+    num_outputs: int = 1,
     **kwargs,
 ):
     """
@@ -77,5 +78,6 @@ def get_model(
         edge_embed=edge_embed,
         connection=connection,
         param_size=param_size,
+        num_outputs=num_outputs,
         **kwargs,
     )

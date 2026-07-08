@@ -7,6 +7,7 @@ from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy, ErrorFunction
 from neuralogic.optim import Adam, Optimizer
 from sklearn.metrics import r2_score, roc_auc_score
+from sklearn.preprocessing import label_binarize
 from sklearn.model_selection import train_test_split
 
 from chemlogic.datasets.datasets import get_dataset
@@ -50,10 +51,11 @@ class Pipeline:
         funnel=False,
         smiles_list: list[str] = None,
         labels: list[int] = None,
-        task: str = "classification",
+        task: str | None = None,
         atom_features: str | list[str] | None = None,
         bond_features: str | list[str] | None = None,
         graph_features: dict | None = None,
+        num_outputs: int = 1,
     ):
         """
         Initialize the test setup by configuring the dataset and model along with optional chemical rules and subgraphs.
@@ -90,6 +92,12 @@ class Pipeline:
                 "If building a dataset from SMILES, make sure to provide both `smiles_list` and `labels` params."
             )
 
+        if smiles_provided and task is None:
+            task, num_outputs = Pipeline._infer_task(labels)
+
+        if task is None:
+            task = "classification"
+
         if smiles_provided:
             dataset_args = {
                 "smiles_list": smiles_list,
@@ -97,19 +105,20 @@ class Pipeline:
                 "atom_features": atom_features,
                 "bond_features": bond_features,
                 "graph_features": graph_features,
+                "num_outputs": num_outputs,
             }
         else:
             dataset_args = {"examples": examples, "queries": queries}
 
         dataset = get_dataset(dataset_name, param_size, **dataset_args)
-
-        if task not in ["regression", "classification"]:
-            raise ValueError("Task must be either 'regression' or 'classification'.")
+        tasks = ["regression", "classification", "multi_class", "multi_regression"]
+        if task not in tasks:
+            raise ValueError(f"Task must be one of: {tasks}.")
 
         transformation = None
-        if task == "classification":
+        if task in ("classification", "multi_class"):
             transformation = Transformation.SIGMOID
-        elif task == "regression":
+        elif task in ("regression", "multi_regression"):
             transformation = Transformation.IDENTITY
 
         template = ChemTemplate()
@@ -171,6 +180,7 @@ class Pipeline:
             dataset.edge_embed,
             dataset.connection,
             param_size,
+            num_outputs=num_outputs,
             edge_types=dataset.bond_types,
             max_depth=max_depth,
             local=local,
@@ -254,6 +264,7 @@ class Pipeline:
         self.template = dataset + template
 
         self.task = task
+        self.num_outputs = num_outputs
 
         # Store architecture parameters for checkpoint saving
         self._architecture_params = {
@@ -271,7 +282,40 @@ class Pipeline:
             else architecture,
             "funnel": funnel,
             "task": task,
+            "num_outputs": num_outputs,
         }
+
+    @staticmethod
+    def _infer_task(labels) -> tuple[str, int]:
+        """
+        Infer task and num_outputs from the first label.
+
+        Sequence label (list/tuple):
+          - all values 0/1 and exactly one 1  → multi_class, len(label)
+          - anything else                      → multi_regression, len(label)
+            (includes multi-label binary like (1,0,1) and float vectors)
+        Scalar:
+          - any float value                    → regression, 1
+          - integers {0, 1} only              → classification, 1
+          - integers with N>2 unique values   → regression (ordinal ambiguous)
+        """
+
+        l0 = labels.iloc[0] if hasattr(labels, "iloc") else labels[0]
+
+        if isinstance(l0, (list, tuple)):
+            n = len(l0)
+            is_one_hot = sum(l0) == 1 and all(v in (0, 1, 0.0, 1.0) for v in l0)
+            return ("multi_class" if is_one_hot else "multi_regression"), n
+
+        all_vals = labels.tolist() if hasattr(labels, "tolist") else list(labels)
+        if any(isinstance(v, float) and v != int(v) for v in all_vals):
+            return "regression", 1
+
+        unique = sorted(set(int(v) for v in all_vals))
+        if unique == [0, 1]:
+            return "classification", 1
+
+        return "regression", 1
 
     def train_test_cycle(
         self,
@@ -413,21 +457,47 @@ class Pipeline:
             test_dataset, evaluator.test(test_dataset, generator=False), strict=False
         ):
             predictions.append(y_hat)
-            targets.append(sample.java_sample.target.value)
+            t = sample.java_sample.target
+            targets.append(list(t.values) if hasattr(t, "values") else t.value)
 
         metric_score = None
         if self.task == "classification":
             metric_score = roc_auc_score(targets, predictions)
-            # Accuracy
             loss = sum(
                 round(pred) != target
                 for pred, target in zip(predictions, targets, strict=False)
+            ) / len(test_dataset)
+        elif self.task == "multi_class":
+            # targets are one-hot vectors; convert to class indices for metrics
+            target_ints = [t.index(max(t)) for t in targets]
+            all_classes = list(range(self.num_outputs))
+            # Softmax-normalize sigmoid outputs so they sum to 1 (required by roc_auc_score)
+            import math
+            def softmax(v):
+                e = [math.exp(x) for x in v]
+                s = sum(e)
+                return [x / s for x in e]
+            probs = [softmax(p) for p in predictions]
+            metric_score = roc_auc_score(
+                label_binarize(target_ints, classes=all_classes),
+                probs,
+                multi_class="ovr",
+            )
+            loss = sum(
+                int(p.index(max(p))) != t
+                for p, t in zip(predictions, target_ints, strict=False)
             ) / len(test_dataset)
         elif self.task == "regression":
             metric_score = r2_score(targets, predictions)
             # Mean Squared Error
             loss = sum(
                 (pred - target) ** 2
+                for pred, target in zip(predictions, targets, strict=False)
+            ) / len(test_dataset)
+        elif self.task == "multi_regression":
+            metric_score = r2_score(targets, predictions, multioutput="uniform_average")
+            loss = sum(
+                sum((p - t) ** 2 for p, t in zip(pred, target))
                 for pred, target in zip(predictions, targets, strict=False)
             ) / len(test_dataset)
 
