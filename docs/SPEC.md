@@ -12,7 +12,8 @@ Technical reference for APIs and configuration. For introduction and installatio
 4. [Knowledge Base](#knowledge-base)
 5. [Pipeline](#pipeline)
 6. [Architecture Types](#architecture-types)
-7. [Configuration Reference](#configuration-reference)
+7. [Checkpointing](#checkpointing)
+8. [Configuration Reference](#configuration-reference)
 
 ---
 
@@ -22,19 +23,19 @@ Technical reference for APIs and configuration. For introduction and installatio
 
 | Dataset | Source | Size | Description |
 |---------|--------|------|-------------|
-| `mutagen` | TUD | 183 | Mutagenicity prediction |
-| `ptc`, `ptc_fr`, `ptc_mm`, `ptc_fm` | TUD | 336-351 | Toxicity prediction (various species) |
-| `dhfr` | TUD | 393 | DHFR inhibition |
-| `er` | TUD | 446 | Estrogen receptor binding |
-| `blood_brain_barrier` | TDC | 2030 | Blood-brain barrier penetration |
-| `skin_reaction` | TDC | 404 | Skin sensitization |
-| `oral_bioavailability` | TDC | 640 | Oral bioavailability |
-| `carcinogenous` | TDC | 280 | Carcinogenicity |
-| `pampa_permeability` | TDC | 2034 | Membrane permeability |
-| `human_intestinal_absorption` | TDC | 578 | Intestinal absorption |
-| `p_glycoprotein_inhibition` | TDC | 1218 | P-gp inhibition |
-| `cyp2c9_substrate`, `cyp2d6_substrate`, `cyp3a4_substrate` | TDC | 667-670 | CYP enzyme substrates |
-| `anti_sarscov2_activity` | TDC | 1484 | SARS-CoV-2 activity |
+| `mutagen` | [TUD](https://chrsmrrs.github.io/datasets/docs/datasets/) | 183 | Mutagenicity prediction |
+| `ptc`, `ptc_fr`, `ptc_mm`, `ptc_fm` | [TUD](https://chrsmrrs.github.io/datasets/docs/datasets/) | 336-351 | Toxicity prediction (various species) |
+| `dhfr` | [TUD](https://chrsmrrs.github.io/datasets/docs/datasets/) | 393 | DHFR inhibition |
+| `er` | [TUD](https://chrsmrrs.github.io/datasets/docs/datasets/) | 446 | Estrogen receptor binding |
+| `blood_brain_barrier` | [TDC](https://tdcommons.ai) | 2030 | Blood-brain barrier penetration |
+| `skin_reaction` | [TDC](https://tdcommons.ai) | 404 | Skin sensitization |
+| `oral_bioavailability` | [TDC](https://tdcommons.ai) | 640 | Oral bioavailability |
+| `carcinogenous` | [TDC](https://tdcommons.ai) | 280 | Carcinogenicity |
+| `pampa_permeability` | [TDC](https://tdcommons.ai) | 2034 | Membrane permeability |
+| `human_intestinal_absorption` | [TDC](https://tdcommons.ai) | 578 | Intestinal absorption |
+| `p_glycoprotein_inhibition` | [TDC](https://tdcommons.ai) | 1218 | P-gp inhibition |
+| `cyp2c9_substrate`, `cyp2d6_substrate`, `cyp3a4_substrate` | [TDC](https://tdcommons.ai) | 667-670 | CYP enzyme substrates |
+| `anti_sarscov2_activity` | [TDC](https://tdcommons.ai) | 1484 | SARS-CoV-2 activity |
 
 ### Custom Datasets via SMILES
 
@@ -283,7 +284,7 @@ Both approaches show improvement over baseline. Use `broadcast_graph_features=Tr
 |-------|-----|-------------|
 | GNN | `gnn` | Standard graph neural network with edge features |
 | RGCN | `rgcn` | Relational GCN with typed edges |
-| KGNN | `kgnn` | Knowledge graph neural network (`kgnn_local` for local variant) |
+| KGNN | `kgnn` (`kgnn_local` for local variant) | Higher-order GNN (k-GNN) |
 | EgoGNN | `ego` | Ego-centric graph neural network |
 | SGN | `sgn` | Subgraph network (requires `max_depth`) |
 | DiffusionCNN | `diffusion` | Diffusion convolutional network (requires `max_depth`) |
@@ -366,12 +367,36 @@ Pipeline(
     architecture: ArchitectureType = ArchitectureType.BARE,
     funnel: bool = False,
     smiles_list: list[str] = None,
-    labels: list[int] = None,
-    task: str = "classification",
+    labels: list = None,
+    task: str | None = None,        # auto-detected from labels if not provided
     atom_features: str | list[str] | None = None,
     bond_features: str | list[str] | None = None,
+    graph_features: dict | None = None,
+    num_outputs: int = 1,           # auto-detected from label shape if task is auto-detected
 )
 ```
+
+`task` and `num_outputs` are auto-detected from label structure when not provided:
+
+| Label | Inferred task | num_outputs |
+|---|---|---|
+| `[4.56, 3.21, ...]` — scalars with any float | `regression` | 1 |
+| `[0, 1, 0, 1, ...]` — integers `{0,1}` only | `classification` | 1 |
+| `[0, 1, 2, 3, ...]` — integers N>2 unique | `regression` | 1 |
+| `[[1,0,0], [0,1,0], ...]` — sequences summing to 1 with values in `{0,1}` | `multi_class` | `len(label)` |
+| everything else sequence — `[(4.5,2.1), ...]`, `[[1.2,2.3], ...]`, `[(1,0,1), ...]` | `multi_regression` | `len(label)` |
+
+Integers with N>2 unique values (ordinal, count) warn and default to `regression` — they are ambiguous. Pass `task=` explicitly.
+
+`graph_features` accepts a `dict` mapping feature name to a list of per-molecule values:
+```python
+pipeline = Pipeline(
+    ...,
+    graph_features={"mol_weight": [46.07, 78.11], "log_p": [-0.18, 2.13]},
+)
+```
+
+`num_outputs` controls the output layer dimension. For `task="multi_class"` set it to the number of classes.
 
 ### Training
 
@@ -380,17 +405,41 @@ train_loss, test_loss, metric, evaluator = pipeline.train_test_cycle(
     lr: float = 0.001,
     epochs: int = 100,
     split_ratio: float = 0.75,
+    optimizer = Adam,
+    error_function = None,           # defaults to CrossEntropy or MSE based on task
     batches: int = 1,
     early_stopping_threshold: float = 0.001,
-    early_stopping_rounds: int = 10
+    early_stopping_rounds: int = 10,
+    checkpoint_every: int | None = None,    # save checkpoint every N epochs
+    checkpoint_dir: str | None = None,      # defaults to checkpoints/{dataset_name}/
 )
 ```
+
+Returns `(train_loss_last_epoch, test_loss, metric_score, evaluator)`. Metric is AUROC for classification/multi-class, R² for regression.
 
 ### Inference
 
 ```python
 predictions = pipeline.inference(smiles_list=["CCO", "CC(=O)O"])
 ```
+
+Raises `ValueError` if called before `train_test_cycle`.
+
+### Saving and loading checkpoints
+
+```python
+# Save after training
+safetensors_path, json_path = pipeline.save_checkpoint()
+
+# Save to specific path
+pipeline.save_checkpoint("checkpoints/my_model")
+
+# Load and run inference
+pipeline = Pipeline.from_checkpoint("checkpoints/my_model")
+predictions = pipeline.inference(["CCO", "CC(=O)O"])
+```
+
+`save_checkpoint` accepts optional `training_state` and `metadata` dicts for bookkeeping.
 
 ### Visualization
 
@@ -402,22 +451,50 @@ pipeline.template.draw()  # Requires graphviz
 
 ```python
 from chemlogic.utils.Pipeline import Pipeline
+import pandas as pd
 
-# Pipeline with atom and bond features
+# Pipeline with atom, bond, and graph features
+df = pd.read_csv("molecules.csv")  # must have SMILES and target columns
 pipeline = Pipeline(
     dataset_name="my_dataset",
     model_name="gnn",
     param_size=8,
     layers=2,
-    smiles_list=["CCO", "c1ccccc1", "CC(=O)O"],
-    labels=[0, 1, 0],
-    task="classification",
+    smiles_list=df["SMILES"],
+    labels=df["target"],
+    task="regression",
     atom_features=["formal_charge", "is_aromatic", "degree"],
     bond_features=["is_aromatic", "is_in_ring"],
+    graph_features={"num_atoms": df["num_atoms"], "logP": df["logP"]},
 )
 
-train_loss, test_loss, auroc, evaluator = pipeline.train_test_cycle(epochs=50)
-print(f"AUROC: {auroc:.4f}")
+train_loss, test_loss, r2, evaluator = pipeline.train_test_cycle(epochs=100)
+print(f"R²: {r2:.4f}")
+```
+
+### Example: Multi-class classification
+
+```python
+import pandas as pd
+from chemlogic.utils.Pipeline import Pipeline
+
+df = pd.read_csv("molecules.csv")
+# Create 3-class labels from a continuous property
+labels = pd.cut(df["target"], bins=3, labels=[0, 1, 2]).astype(int).tolist()
+
+pipeline = Pipeline(
+    dataset_name="my_dataset",
+    model_name="gnn",
+    param_size=8,
+    layers=2,
+    smiles_list=df["SMILES"],
+    labels=labels,
+    task="multi_class",
+    num_outputs=3,
+)
+
+train_loss, test_loss, auroc_ovr, evaluator = pipeline.train_test_cycle(epochs=100)
+print(f"AUROC (OVR): {auroc_ovr:.4f}")
 ```
 
 ---
@@ -451,6 +528,52 @@ CCD (Chemical Concept Decoder): KB processes GNN output
 
 ---
 
+## Checkpointing
+
+Checkpoints save the trained model weights to two files: `{name}.safetensors` (weights) and `{name}.json` (architecture + metadata).
+
+### `Checkpoint` class (low-level)
+
+```python
+from chemlogic.utils.Checkpoint import Checkpoint
+
+# Save
+safetensors_path, json_path = Checkpoint.save(
+    evaluator,
+    filepath="checkpoints/run1",
+    architecture={"model_name": "gnn", ...},  # optional
+    training_state={"epoch": 100, "train_loss": 0.42},  # optional
+    metadata={"description": "baseline"},      # optional
+)
+
+# Check existence
+Checkpoint.exists("checkpoints/run1")  # True if both files present
+
+# Load metadata
+data = Checkpoint.load("checkpoints/run1")
+# data keys: weights, weight_names, version, created_at, architecture, training_state, metadata
+
+# Load weights into a pre-built evaluator
+Checkpoint.load_weights_into(evaluator, "checkpoints/run1")
+```
+
+### Via Pipeline (high-level)
+
+```python
+# Save after training
+pipeline.save_checkpoint()                        # auto-path: checkpoints/{dataset_name}/{timestamp}
+pipeline.save_checkpoint("checkpoints/my_run")   # explicit path
+
+# Load
+pipeline = Pipeline.from_checkpoint("checkpoints/my_run")
+predictions = pipeline.inference(["CCO", "CC(=O)O"])
+
+# Save during training (every 10 epochs)
+pipeline.train_test_cycle(checkpoint_every=10, checkpoint_dir="checkpoints/")
+```
+
+---
+
 ## Configuration Reference
 
 ### Pipeline Parameters
@@ -458,17 +581,23 @@ CCD (Chemical Concept Decoder): KB processes GNN output
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `dataset_name` | str | required | Dataset identifier |
-| `model_name` | str | required | Model key |
+| `model_name` | str | required | Model key (see Models) |
 | `param_size` | int | required | Embedding dimension |
 | `layers` | int | required | Number of GNN layers |
-| `max_depth` | int | 1 | Propagation depth |
+| `max_depth` | int | 1 | Propagation depth (SGN, DiffusionCNN, CWNet) |
 | `max_subgraph_depth` | int | 5 | Maximum subgraph path length |
 | `max_cycle_size` | int | 10 | Maximum cycle size |
 | `subgraphs` | bool/tuple | None | Enable subgraph patterns |
 | `chem_rules` | bool/tuple | None | Enable chemical rules |
 | `architecture` | ArchitectureType | BARE | Integration strategy |
-| `funnel` | bool | False | Fix weight size to 1 for interpretability |
-| `task` | str | "classification" | Task type ("classification" or "regression") |
+| `funnel` | bool | False | Fix KB weight size to 1 for interpretability |
+| `smiles_list` | list[str] | None | SMILES strings (required with `labels`) |
+| `labels` | list | None | Per-molecule labels (required with `smiles_list`) |
+| `task` | str | "classification" | Task type (see Tasks and Metrics) |
+| `atom_features` | str/list/None | None | RDKit atom features (`"all"` or list of names) |
+| `bond_features` | str/list/None | None | RDKit bond features (`"all"` or list of names) |
+| `graph_features` | dict/None | None | Per-molecule scalar features `{"name": [values]}` |
+| `num_outputs` | int | 1 | Output dimension; set to number of classes for `multi_class` |
 
 ### Training Parameters
 
@@ -477,13 +606,19 @@ CCD (Chemical Concept Decoder): KB processes GNN output
 | `lr` | float | 0.001 | Learning rate |
 | `epochs` | int | 100 | Maximum training epochs |
 | `split_ratio` | float | 0.75 | Train/test split ratio |
-| `batches` | int | 1 | Number of batches |
-| `early_stopping_threshold` | float | 0.001 | Minimum improvement |
-| `early_stopping_rounds` | int | 10 | Patience before stopping |
+| `optimizer` | Optimizer | Adam | NeuraLogic optimizer class |
+| `error_function` | ErrorFunction | None | Defaults to CrossEntropy (classification) or MSE (regression) |
+| `batches` | int | 1 | Number of dataset batches |
+| `early_stopping_threshold` | float | 0.001 | Minimum improvement to reset patience |
+| `early_stopping_rounds` | int | 10 | Epochs without improvement before stopping |
+| `checkpoint_every` | int/None | None | Save checkpoint every N epochs |
+| `checkpoint_dir` | str/None | None | Checkpoint directory (default: `checkpoints/{dataset_name}/`) |
 
 ### Tasks and Metrics
 
-| Task | Output Transformation | Loss Function | Evaluation Metric |
-|------|----------------------|---------------|-------------------|
-| Classification | Sigmoid | Cross-Entropy | AUROC |
-| Regression | Identity | MSE | R² |
+| Task | `task=` | `num_outputs` | Output Transform | Loss | Metric |
+|------|---------|--------------|-----------------|------|--------|
+| Binary classification | `"classification"` | 1 | Sigmoid | Cross-Entropy | AUROC |
+| Multi-class classification | `"multi_class"` | N classes | Sigmoid + softmax | Cross-Entropy | AUROC (OVR, macro) |
+| Regression | `"regression"` | 1 | Identity | MSE | R² |
+| Multi-regression | `"multi_regression"` | N targets | Identity | MSE | R² (uniform average) |

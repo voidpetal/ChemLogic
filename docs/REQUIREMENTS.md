@@ -11,9 +11,12 @@ Formal requirements specification. For introduction, see [README](../README.md).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FR1.1 | Predict binary molecular properties | Must |
-| FR1.2 | Predict continuous molecular properties | Must |
-| FR1.3 | Accept SMILES strings as input | Must |
-| FR1.4 | Support batch prediction | Should |
+| FR1.2 | Predict continuous molecular properties (regression) | Must |
+| FR1.3 | Predict multi-class molecular properties | Must |
+| FR1.4 | Predict multiple outputs simultaneously (multi-regression) | Must |
+| FR1.5 | Accept SMILES strings as input | Must |
+| FR1.6 | Auto-detect task type from label structure | Should |
+| FR1.7 | Support batch prediction | Should |
 
 ### FR2: Model Configuration
 
@@ -42,7 +45,7 @@ Formal requirements specification. For introduction, see [README](../README.md).
 | FR4.2 | Configurable learning rate and epochs | Must |
 | FR4.3 | Early stopping | Must |
 | FR4.4 | Report loss and evaluation metrics | Must |
-| FR4.5 | AUROC for classification, R² for regression | Must |
+| FR4.5 | AUROC for classification/multi-class, R² for regression/multi-regression | Must |
 
 ### FR5: Datasets
 
@@ -68,6 +71,22 @@ Formal requirements specification. For introduction, see [README](../README.md).
 | FR7.1 | Inference on new SMILES after training | Must |
 | FR7.2 | Return prediction scores | Must |
 
+### FR8: Extended Features
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR8.1 | Atom-level RDKit features as node predicates | Must |
+| FR8.2 | Bond-level RDKit features as edge predicates | Must |
+| FR8.3 | Graph-level scalar features via synthetic node or broadcast | Must |
+
+### FR9: Checkpointing
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR9.1 | Save trained model weights to disk | Must |
+| FR9.2 | Load weights and resume inference without retraining | Must |
+| FR9.3 | Optionally save checkpoint during training at fixed intervals | Should |
+
 ---
 
 ## Non-Functional Requirements
@@ -86,7 +105,8 @@ Formal requirements specification. For introduction, see [README](../README.md).
 |----|-------------|--------|
 | NFR2.1 | Basic pipeline in <10 lines of code | Must |
 | NFR2.2 | Sensible parameter defaults | Must |
-| NFR2.3 | Clear error messages | Should |
+| NFR2.3 | Auto-detect task and num_outputs from label structure | Should |
+| NFR2.4 | Clear error messages | Should |
 
 ### NFR3: Compatibility
 

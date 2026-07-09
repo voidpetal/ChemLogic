@@ -126,7 +126,6 @@ Architectural decisions and rationale. For introduction, see [README](../README.
 
 - **Implicit hydrogens**: Some functional group patterns assume explicit hydrogens
 - **Single-task only**: No multi-task or transfer learning support
-- **Binary/regression only**: No multi-class classification
 
 ---
 
