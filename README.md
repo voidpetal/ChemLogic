@@ -2,9 +2,9 @@
 
 Chemlogic is a **Neurosymbolic GNN** framework designed for interpretable molecular property prediction. It integrates relational logic syntax with graph neural networks to encode functional groups and structural patterns as learnable rules.
 
-Built on [PyNeuraLogic](https://github.com/LukasZahradnik/PyNeuraLogic). Read the [paper](#).
+Built on [PyNeuraLogic](https://github.com/LukasZahradnik/PyNeuraLogic).
 
----
+Read the paper: TBD
 
 ## Install
 
@@ -17,8 +17,6 @@ pip install ChemLogic
 ChemLogic requires Python 3.11 and Java >=1.8. For visualization `graphviz` is required.
 
 All dependencies are listed in `pyproject.toml`.
-
----
 
 ## Usage
 
@@ -91,7 +89,20 @@ pipeline = Pipeline.from_checkpoint("checkpoints/run1")
 predictions = pipeline.inference(["CCO", "c1ccccc1", "CC(=O)O"])
 ```
 
----
+## How it works
+
+A molecule is translated into logical atoms encoding atom and bond types. Background knowledge rules (functional groups, ring patterns, and substructures) are matched against these atoms to derive higher-level representations. The result is passed through message-passing GNN rules, all expressed in the same differentiable relational logic.
+
+![End-to-end encoding of a molecule through background knowledge and GNN layers](docs/images/full.png)
+
+GNN message-passing is expressed directly as logic rules. Each node aggregates representations of connected nodes via variable substitutions over the graph.
+
+![Message-passing in a standard GNN encoded as declarative relational logic rules](docs/images/gnnMP.png)
+
+The background knowledge can be integrated in three modes: **BARE** runs GNN and KB independently as a baseline; **Chemical Concept Encoder (CCE)** feeds KB-derived representations into the GNN input (enhances performance - something like featurization); **Chemical Concept Decoder (CCD)** passes GNN output through the KB (enhances explainability).
+After training in CCD mode, each functional group rule carries a scalar weight that directly quantifies its contribution to the prediction.
+
+![Learned weights on functional group rules for a nitrosamine compound](docs/images/explainability.png)
 
 ## Models
 
@@ -125,7 +136,12 @@ predictions = pipeline.inference(["CCO", "c1ccccc1", "CC(=O)O"])
 
 Any SMILES list or DataFrame works as a custom dataset.
 
----
+
+## Results
+
+Performance across datasets and architecture modes (BARE / CCE / CCD):
+
+![Performance across datasets](docs/images/all_datasets_results.png)
 
 ## Project structure
 
