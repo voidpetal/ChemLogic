@@ -14,6 +14,7 @@ class CyclePattern(KnowledgeBase):
         min_cycle_size (int): Smallest ring size to detect. Must be >= 3.
         max_cycle_size (int): Largest ring size to detect. Must be > min_cycle_size.
     """
+
     required_keys = [
         "layer_name",
         "param_size",
@@ -46,6 +47,7 @@ class CyclePattern(KnowledgeBase):
         Produces `{layer_name}_cycle(X, X0)` for each size, aggregated into
         `{layer_name}_cycle(X)` and contributed to `{layer_name}_pattern(X)`.
         """
+
         def get_cycle(cycle_size):
             # Cycles are paths from a node to itself, with every node on the path being unique
             # cannot use path predicate here, because all the edges are undirected

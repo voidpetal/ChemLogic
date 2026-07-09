@@ -285,7 +285,11 @@ def get_dataset_and_mappings(
     if labels is not None:
         for graph, label in zip(graphs, labels, strict=False):
             # One-hot encode scalar integer labels for multi-output models
-            if num_outputs > 1 and isinstance(label, (int, float)) and not isinstance(label, bool):
+            if (
+                num_outputs > 1
+                and isinstance(label, (int, float))
+                and not isinstance(label, bool)
+            ):
                 one_hot = [0.0] * num_outputs
                 one_hot[int(label)] = 1.0
                 graph.y = one_hot

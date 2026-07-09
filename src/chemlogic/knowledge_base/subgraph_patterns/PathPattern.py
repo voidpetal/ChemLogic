@@ -13,6 +13,7 @@ class PathPattern(KnowledgeBase):
     Args:
         max_depth (int): Maximum path length. Must be >= 3.
     """
+
     required_keys = [
         "layer_name",
         "param_size",

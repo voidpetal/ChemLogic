@@ -12,6 +12,11 @@ Read the paper: TBD
 pip install ChemLogic
 ```
 
+For experiment tracking with hyperparameter tuning (Optuna + MLflow):
+```bash
+pip install ChemLogic[experiments]
+```
+
 ## Dependencies
 
 ChemLogic requires Python 3.11 and Java >=1.8. For visualization `graphviz` is required.

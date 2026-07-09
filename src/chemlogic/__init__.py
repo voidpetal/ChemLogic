@@ -1,3 +1,3 @@
-from .utils.Pipeline import Pipeline, ArchitectureType
+from .utils.Pipeline import ArchitectureType, Pipeline
 
 __all__ = ["Pipeline", "ArchitectureType"]
