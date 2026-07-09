@@ -4,6 +4,23 @@ from chemlogic.models.Model import Model
 
 
 class GNN(Model):
+    """Standard message-passing GNN with edge features.
+
+    Each node aggregates representations from its neighbours and their
+    connecting edge embeddings. The update rule per layer is:
+
+        layer_k(X) <= layer_{k-1}(X), layer_{k-1}(Y), connection(X, Y, B), edge_embed(B)
+
+    This subsumes GCN (Kipf & Welling, 2017), GraphSAGE (Hamilton et al., 2017),
+    and GIN (Xu et al., 2019) as special cases differing only in the aggregation
+    and message function.
+
+    Reference:
+        Scarselli et al. "The Graph Neural Network Model."
+        IEEE Transactions on Neural Networks, 2009.
+        https://doi.org/10.1109/TNN.2008.2005605
+    """
+
     def __init__(self, *args, **kwargs):
         kwargs["model_name"] = "gnn"
         super().__init__(*args, **kwargs)
