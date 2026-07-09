@@ -108,7 +108,7 @@ dev = [
     "ipython>=9.0.0",
     "ipykernel>=7.0.0",
     "ruff>=0.9.10",
-    "nbconvert==7.16.6",
+    "nbconvert==7.17.1",
     "pdm-bump>=0.9.12",
     "pytest-xdist>=3.8.0",
     "pytest-cov>=6.0.0",
