@@ -1,4 +1,6 @@
+from datetime import datetime
 from enum import Enum
+from pathlib import Path
 
 from neuralogic.core import R, Settings, Transformation, V
 from neuralogic.nn import get_evaluator
@@ -6,12 +8,15 @@ from neuralogic.nn.loss import MSE, CrossEntropy, ErrorFunction
 from neuralogic.optim import Adam, Optimizer
 from sklearn.metrics import r2_score, roc_auc_score
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import label_binarize
 
 from chemlogic.datasets.datasets import get_dataset
 from chemlogic.knowledge_base.chemrules import get_chem_rules
 from chemlogic.knowledge_base.subgraphs import get_subgraphs
 from chemlogic.models.models import get_model
+from chemlogic.utils.Checkpoint import Checkpoint
 from chemlogic.utils.ChemTemplate import ChemTemplate
+from chemlogic.utils.config import PipelineConfig, TrainConfig
 
 
 class ArchitectureType(Enum):
@@ -47,7 +52,11 @@ class Pipeline:
         funnel=False,
         smiles_list: list[str] = None,
         labels: list[int] = None,
-        task: str = "classification",
+        task: str | None = None,
+        atom_features: str | list[str] | None = None,
+        bond_features: str | list[str] | None = None,
+        graph_features: dict | None = None,
+        num_outputs: int = 1,
     ):
         """
         Initialize the test setup by configuring the dataset and model along with optional chemical rules and subgraphs.
@@ -66,28 +75,64 @@ class Pipeline:
         :param smiles_list: A list of smiles strings to build the dataset with.
         :param labels: A list of integer labels to build the dataset with.
         :param task: The type of task, either "classification" or "regression". - default: "classification"
+        :param atom_features: Atom features to extract as node-level predicates.
+            - None: No additional features (default, backward compatible)
+            - 'all': Extract all 8 available RDKit atom features
+            - list[str]: Extract only specified features (e.g., ['formal_charge', 'is_aromatic'])
+        :param bond_features: Bond features to extract as edge-level predicates.
+            - None: No additional features (default, backward compatible)
+            - 'all': Extract all 4 available RDKit bond features
+            - list[str]: Extract only specified features (e.g., ['is_aromatic', 'is_conjugated'])
         :return: A tuple containing the template and dataset.
         """
 
-        if bool(smiles_list) != bool(labels):
+        if smiles_list is not None and task is None:
+            task, num_outputs = Pipeline._infer_task(labels)
+
+        if task is None:
+            task = "classification"
+
+        if (smiles_list is not None) != (labels is not None):
             raise ValueError(
-                "If building a dataset from SMILES, make sure to provide both `smiles_list` and `labels` params."
+                "If building a dataset from SMILES, provide both `smiles_list` and `labels`."
             )
 
-        if smiles_list:
-            dataset_args = {"smiles_list": smiles_list, "labels": labels}
+        cfg = PipelineConfig(
+            dataset_name=dataset_name,
+            model_name=model_name,
+            param_size=param_size,
+            layers=layers,
+            max_depth=max_depth,
+            max_subgraph_depth=max_subgraph_depth,
+            max_cycle_size=max_cycle_size,
+            subgraphs=subgraphs,
+            chem_rules=chem_rules,
+            architecture=architecture.value
+            if isinstance(architecture, ArchitectureType)
+            else architecture,
+            funnel=funnel,
+            task=task,
+            num_outputs=num_outputs,
+        )
+
+        if smiles_list is not None:
+            dataset_args = {
+                "smiles_list": smiles_list,
+                "labels": labels,
+                "atom_features": atom_features,
+                "bond_features": bond_features,
+                "graph_features": graph_features,
+                "num_outputs": cfg.num_outputs,
+            }
         else:
             dataset_args = {"examples": examples, "queries": queries}
 
-        dataset = get_dataset(dataset_name, param_size, **dataset_args)
-
-        if task not in ["regression", "classification"]:
-            raise ValueError("Task must be either 'regression' or 'classification'.")
+        dataset = get_dataset(cfg.dataset_name, cfg.param_size, **dataset_args)
 
         transformation = None
-        if task == "classification":
+        if cfg.task in ("classification", "multi_class"):
             transformation = Transformation.SIGMOID
-        elif task == "regression":
+        elif cfg.task in ("regression", "multi_regression"):
             transformation = Transformation.IDENTITY
 
         template = ChemTemplate()
@@ -144,29 +189,33 @@ class Pipeline:
 
         template += get_model(
             model_name,
-            layers,
+            cfg.layers,
             io_layers["nn_input"],
             dataset.edge_embed,
             dataset.connection,
-            param_size,
+            cfg.param_size,
+            num_outputs=cfg.num_outputs,
             edge_types=dataset.bond_types,
-            max_depth=max_depth,
+            max_depth=cfg.max_depth,
             local=local,
             output_layer_name=io_layers["nn_output"],
             output_layer_transformation=transformation,
         )
 
-        if chem_rules:
+        if cfg.chem_rules:
             try:
                 # TODO: create a generator class
-                hydrocarbons, oxy, nitro, sulfuric, relaxations = chem_rules
+                hydrocarbons, oxy, nitro, sulfuric, relaxations = cfg.chem_rules
             except Exception:
                 hydrocarbons, oxy, nitro, sulfuric, relaxations = (True,) * 5
 
             chem_path = (
                 "sub_path"
-                if subgraphs
-                and ((type(subgraphs) in (list, tuple) and subgraphs[1]) or subgraphs)
+                if cfg.subgraphs
+                and (
+                    (type(cfg.subgraphs) in (list, tuple) and cfg.subgraphs[1])
+                    or cfg.subgraphs
+                )
                 else None
             )
 
@@ -175,7 +224,7 @@ class Pipeline:
                 io_layers["chem_input"],
                 dataset.edge_embed,
                 dataset.connection,
-                param_size,
+                cfg.param_size,
                 dataset.halogens,
                 output_layer_name=io_layers["chem_output"],
                 output_layer_transformation=transformation,
@@ -195,12 +244,12 @@ class Pipeline:
                 oxy=oxy,
                 relaxations=relaxations,
                 key_atoms=dataset.key_atom_type,
-                funnel=funnel,
+                funnel=cfg.funnel,
             )
 
-        if subgraphs:
+        if cfg.subgraphs:
             try:
-                cycles, paths, y_shape, nbhoods, circular, collective = subgraphs
+                cycles, paths, y_shape, nbhoods, circular, collective = cfg.subgraphs
             except Exception:
                 cycles, paths, y_shape, nbhoods, circular, collective = (True,) * 6
 
@@ -209,9 +258,9 @@ class Pipeline:
                 io_layers["subg_input"],
                 dataset.edge_embed,
                 dataset.connection,
-                param_size,
-                max_cycle_size=max_cycle_size,
-                max_depth=max_subgraph_depth,
+                cfg.param_size,
+                max_cycle_size=cfg.max_cycle_size,
+                max_depth=cfg.max_subgraph_depth,
                 output_layer_name=io_layers["subg_output"],
                 output_layer_transformation=transformation,
                 single_bond=dataset.single_bond,
@@ -225,13 +274,48 @@ class Pipeline:
                 nbhoods=nbhoods,
                 circular=circular,
                 collective=collective,
-                funnel=funnel,
+                funnel=cfg.funnel,
             )
 
         self.dataset = dataset
         self.template = dataset + template
 
-        self.task = task
+        self.task = cfg.task
+        self.num_outputs = cfg.num_outputs
+
+        self._architecture_params = cfg.to_architecture_dict()
+
+    @staticmethod
+    def _infer_task(labels) -> tuple[str, int]:
+        """
+        Infer task and num_outputs from the first label.
+
+        Sequence label (list/tuple):
+          - all values 0/1 and exactly one 1  → multi_class, len(label)
+          - anything else                      → multi_regression, len(label)
+            (includes multi-label binary like (1,0,1) and float vectors)
+        Scalar:
+          - any float value                    → regression, 1
+          - integers {0, 1} only              → classification, 1
+          - integers with N>2 unique values   → regression (ordinal ambiguous)
+        """
+
+        l0 = labels.iloc[0] if hasattr(labels, "iloc") else labels[0]
+
+        if isinstance(l0, (list, tuple)):
+            n = len(l0)
+            is_one_hot = sum(l0) == 1 and all(v in (0, 1, 0.0, 1.0) for v in l0)
+            return ("multi_class" if is_one_hot else "multi_regression"), n
+
+        all_vals = labels.tolist() if hasattr(labels, "tolist") else list(labels)
+        if any(isinstance(v, float) and v != int(v) for v in all_vals):
+            return "regression", 1
+
+        unique = sorted(set(int(v) for v in all_vals))
+        if unique == [0, 1]:
+            return "classification", 1
+
+        return "regression", 1
 
     def train_test_cycle(
         self,
@@ -243,6 +327,8 @@ class Pipeline:
         batches: int = 1,
         early_stopping_threshold: float = 0.001,
         early_stopping_rounds: int = 10,
+        checkpoint_every: int | None = None,
+        checkpoint_dir: str | Path | None = None,
     ):
         """
         Train and test the model based on the provided template and dataset.
@@ -255,29 +341,47 @@ class Pipeline:
         :param batches: Number of batches to build the dataset in.
         :param early_stopping_threshold: Minimum improvement threshold to reset early stopping counter.
         :param early_stopping_rounds: Number of rounds without improvement to trigger early stopping.
+        :param checkpoint_every: Save checkpoint every N epochs. If None, no checkpoints saved during training.
+        :param checkpoint_dir: Directory for checkpoint files. Defaults to checkpoints/{dataset_name}/
         :return: The training loss, testing loss, AUROC validation score for classification or R2 for regression tasks and the evaluator object.
         """
+        train_cfg = TrainConfig(
+            lr=lr,
+            epochs=epochs,
+            split_ratio=split_ratio,
+            batches=batches,
+            early_stopping_threshold=early_stopping_threshold,
+            early_stopping_rounds=early_stopping_rounds,
+            checkpoint_every=checkpoint_every,
+        )
+
         if error_function is None:
             error_function = MSE if self.task == "regression" else CrossEntropy
 
         settings = Settings(
-            optimizer=optimizer(lr=lr), epochs=epochs, error_function=error_function()
+            optimizer=optimizer(lr=train_cfg.lr),
+            epochs=train_cfg.epochs,
+            error_function=error_function(),
         )
         # TODO: log instead of print
-        print(f"Building dataset in {batches} batches")
+        print(f"Building dataset in {train_cfg.batches} batches")
         evaluator = get_evaluator(self.template, settings)
-        built_dataset = evaluator.build_dataset(self.dataset.data, batch_size=batches)
+        built_dataset = evaluator.build_dataset(
+            self.dataset.data, batch_size=train_cfg.batches
+        )
 
         train_dataset, test_dataset = train_test_split(
-            built_dataset.samples, train_size=split_ratio, random_state=42
+            built_dataset.samples, train_size=train_cfg.split_ratio, random_state=42
         )
         print("Training model")
         train_losses = self._train_model(
             evaluator,
             train_dataset,
-            settings.epochs,
-            early_stopping_rounds,
-            early_stopping_threshold,
+            train_cfg.epochs,
+            train_cfg.early_stopping_rounds,
+            train_cfg.early_stopping_threshold,
+            checkpoint_every=train_cfg.checkpoint_every,
+            checkpoint_dir=Path(checkpoint_dir) if checkpoint_dir is not None else None,
         )
         test_loss, other_metric = self._evaluate_model(evaluator, test_dataset)
 
@@ -293,6 +397,8 @@ class Pipeline:
         epochs,
         early_stopping_rounds=10,
         early_stopping_threshold=0.001,
+        checkpoint_every: int | None = None,
+        checkpoint_dir: str | Path | None = None,
     ):
         """
         Train the model on the training dataset.
@@ -302,6 +408,8 @@ class Pipeline:
         :param epochs: Number of training epochs.
         :param early_stopping_rounds: Number of rounds without improvement to trigger early stopping.
         :param early_stopping_threshold: Minimum improvement threshold to reset early stopping counter.
+        :param checkpoint_every: Save checkpoint every N epochs. If None, no checkpoints saved.
+        :param checkpoint_dir: Directory for checkpoint files.
         :return: List of average training losses per epoch.
         """
         average_losses = []
@@ -321,6 +429,26 @@ class Pipeline:
             print(
                 f"Epoch {epoch + 1}/{epochs} | Train loss: {train_loss} | Best loss: {best_loss} | Difference: {best_loss - train_loss}"
             )
+
+            # Save checkpoint if checkpoint_every is set
+            if checkpoint_every and (epoch + 1) % checkpoint_every == 0:
+                base_dir = (
+                    Path(checkpoint_dir)
+                    if checkpoint_dir
+                    else Path("checkpoints") / self.dataset.dataset_name
+                )
+                checkpoint_path = base_dir / f"epoch_{epoch + 1}"
+                Checkpoint.save(
+                    evaluator,
+                    checkpoint_path,
+                    architecture=self._architecture_params,
+                    training_state={
+                        "epoch": epoch + 1,
+                        "train_loss": train_loss,
+                        "best_loss": best_loss,
+                    },
+                )
+                print(f"Checkpoint saved: {checkpoint_path}")
 
             if rounds_without_improvement >= early_stopping_rounds:
                 print(f"Early stopping triggered after {epoch + 1} epochs.")
@@ -343,21 +471,50 @@ class Pipeline:
             test_dataset, evaluator.test(test_dataset, generator=False), strict=False
         ):
             predictions.append(y_hat)
-            targets.append(sample.java_sample.target.value)
+            t = sample.java_sample.target
+            raw = getattr(t, "values", None)
+            targets.append(list(raw) if isinstance(raw, (list, tuple)) else t.value)
 
         metric_score = None
         if self.task == "classification":
             metric_score = roc_auc_score(targets, predictions)
-            # Accuracy
             loss = sum(
                 round(pred) != target
                 for pred, target in zip(predictions, targets, strict=False)
+            ) / len(test_dataset)
+        elif self.task == "multi_class":
+            # targets are one-hot vectors; convert to class indices for metrics
+            target_ints = [t.index(max(t)) for t in targets]
+            all_classes = list(range(self.num_outputs))
+            # Softmax-normalize sigmoid outputs so they sum to 1 (required by roc_auc_score)
+            import math
+
+            def softmax(v):
+                e = [math.exp(x) for x in v]
+                s = sum(e)
+                return [x / s for x in e]
+
+            probs = [softmax(p) for p in predictions]
+            metric_score = roc_auc_score(
+                label_binarize(target_ints, classes=all_classes),
+                probs,
+                multi_class="ovr",
+            )
+            loss = sum(
+                int(p.index(max(p))) != t
+                for p, t in zip(predictions, target_ints, strict=False)
             ) / len(test_dataset)
         elif self.task == "regression":
             metric_score = r2_score(targets, predictions)
             # Mean Squared Error
             loss = sum(
                 (pred - target) ** 2
+                for pred, target in zip(predictions, targets, strict=False)
+            ) / len(test_dataset)
+        elif self.task == "multi_regression":
+            metric_score = r2_score(targets, predictions, multioutput="uniform_average")
+            loss = sum(
+                sum((p - t) ** 2 for p, t in zip(pred, target, strict=False))
                 for pred, target in zip(predictions, targets, strict=False)
             ) / len(test_dataset)
 
@@ -395,3 +552,135 @@ class Pipeline:
             predictions.append(y_hat)
 
         return predictions
+
+    # -------------------------------------------------------------------------
+    # Checkpoint methods
+    # -------------------------------------------------------------------------
+
+    def save_checkpoint(
+        self,
+        filepath: str | Path | None = None,
+        *,
+        training_state: dict | None = None,
+        metadata: dict | None = None,
+    ) -> tuple[Path, Path]:
+        """
+        Save the trained model to a checkpoint file.
+
+        Args:
+            filepath: Path for checkpoint files (without extension).
+                     If None, auto-generates path in checkpoints/{dataset_name}/{timestamp}
+            training_state: Optional dict with training state (epoch, losses, etc.)
+                           for resuming training later.
+            metadata: Optional dict with additional metadata (description, etc.)
+
+        Returns:
+            Tuple of (safetensors_path, json_path) for the created files.
+
+        Raises:
+            ValueError: If model hasn't been trained yet.
+        """
+        if not hasattr(self, "evaluator"):
+            raise ValueError(
+                "The model has not been trained yet. Please train the model before saving a checkpoint."
+            )
+
+        # Auto-generate filepath if not provided
+        if filepath is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filepath = Path("checkpoints") / self.dataset.dataset_name / timestamp
+
+        return Checkpoint.save(
+            self.evaluator,
+            filepath,
+            architecture=self._architecture_params,
+            training_state=training_state,
+            metadata=metadata,
+        )
+
+    @classmethod
+    def from_checkpoint(
+        cls,
+        filepath: str | Path,
+        *,
+        smiles_list: list[str] | None = None,
+        labels: list[int] | None = None,
+    ) -> "Pipeline":
+        """
+        Load a Pipeline from a checkpoint file.
+
+        Creates a new Pipeline with the same architecture as the saved model,
+        then loads the trained weights. The pipeline is ready for inference.
+
+        Args:
+            filepath: Path to checkpoint files (with or without extension).
+            smiles_list: Optional SMILES list for building dataset.
+                        If not provided, uses minimal dummy data.
+            labels: Optional labels for building dataset.
+                   Required if smiles_list is provided.
+
+        Returns:
+            A Pipeline instance with loaded weights, ready for inference.
+
+        Raises:
+            FileNotFoundError: If checkpoint files don't exist.
+            ValueError: If checkpoint is missing architecture or incompatible.
+        """
+        # Load checkpoint data
+        checkpoint_data = Checkpoint.load(filepath)
+
+        if "architecture" not in checkpoint_data:
+            raise ValueError(
+                "Checkpoint does not contain architecture information. "
+                "Cannot recreate Pipeline without architecture params."
+            )
+
+        arch = checkpoint_data["architecture"]
+
+        # Convert architecture string back to enum if needed
+        architecture_type = arch.get("architecture", "bare")
+        if isinstance(architecture_type, str):
+            architecture_type = ArchitectureType.from_string(architecture_type.upper())
+
+        # Use provided data or create minimal dummy data
+        # (needed to initialize the template, will be replaced by checkpoint weights)
+        if smiles_list is None:
+            # Use minimal dummy SMILES for initialization
+            smiles_list = ["C"]  # Methane - simplest molecule
+            labels = [0]
+
+        # Create pipeline with same architecture
+        pipeline = cls(
+            dataset_name=arch["dataset_name"],
+            model_name=arch["model_name"],
+            param_size=arch["param_size"],
+            layers=arch["layers"],
+            max_depth=arch.get("max_depth", 1),
+            max_subgraph_depth=arch.get("max_subgraph_depth", 5),
+            max_cycle_size=arch.get("max_cycle_size", 10),
+            subgraphs=arch.get("subgraphs"),
+            chem_rules=arch.get("chem_rules"),
+            architecture=architecture_type,
+            funnel=arch.get("funnel", False),
+            smiles_list=smiles_list,
+            labels=labels,
+            task=arch.get("task", "classification"),
+        )
+
+        # Build evaluator (needed to load weights)
+        # Use default settings - weights will be overwritten anyway
+        error_function = MSE if pipeline.task == "regression" else CrossEntropy
+        settings = Settings(
+            optimizer=Adam(lr=0.001),
+            epochs=1,
+            error_function=error_function(),
+        )
+        pipeline.evaluator = get_evaluator(pipeline.template, settings)
+
+        # Build dataset to initialize the evaluator's internal state
+        pipeline.evaluator.build_dataset(pipeline.dataset.data, batch_size=1)
+
+        # Load weights from checkpoint
+        Checkpoint.load_weights_into(pipeline.evaluator, filepath)
+
+        return pipeline

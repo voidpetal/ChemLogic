@@ -4,6 +4,13 @@ from chemlogic.knowledge_base.KnowledgeBase import KnowledgeBase
 
 
 class YShapePattern(KnowledgeBase):
+    """Y-shaped subgraph pattern detector.
+
+    Detects double-bond-centred Y substructures and connected Y-group motifs
+    (two Y units joined at a shared atom). Requires `double_bond` predicate.
+    Results are contributed to `{layer_name}_pattern`.
+    """
+
     required_keys = [
         "layer_name",
         "param_size",
@@ -14,6 +21,11 @@ class YShapePattern(KnowledgeBase):
     ]
 
     def create_template(self):
+        """Generate Y-shape and double-bond-centred pattern rules.
+
+        Produces `{layer_name}_y_bond_patterns(X)` aggregating double-bond
+        subgraph, Y-bond, and Y-group motifs, contributed to `{layer_name}_pattern(X)`.
+        """
         # Aggregating messages in a double bond
         self.add_rules(
             [

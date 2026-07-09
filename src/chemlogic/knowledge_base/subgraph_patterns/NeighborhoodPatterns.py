@@ -4,6 +4,18 @@ from chemlogic.knowledge_base.KnowledgeBase import KnowledgeBase
 
 
 class NeighborhoodPatterns(KnowledgeBase):
+    """Local neighbourhood and chiral centre pattern detector.
+
+    Generates n-node neighbourhood predicates (`{layer_name}_{n}_nbhood`) for
+    n in [nbh_min_size, nbh_max_size], and a chiral centre predicate for
+    carbon atoms with four distinct substituents. All are aggregated into
+    `{layer_name}_pattern`.
+
+    Args:
+        nbh_min_size (int): Minimum neighbourhood size. Must be >= 3.
+        nbh_max_size (int): Maximum neighbourhood size. Must be > nbh_min_size.
+    """
+
     required_keys = [
         "layer_name",
         "param_size",
@@ -33,6 +45,12 @@ class NeighborhoodPatterns(KnowledgeBase):
             )
 
     def create_template(self):
+        """Generate neighbourhood and chiral centre detection rules.
+
+        Produces `{layer_name}_{n}_nbhood(X)` for n in [nbh_min_size, nbh_max_size]
+        and `{layer_name}_chiral_center(C)`, all aggregated into
+        `{layer_name}_nbhood(X)` and contributed to `{layer_name}_pattern(X)`.
+        """
         nbhoods = [f"{self.layer_name}_chiral_center"]
 
         # n-node neighborhoods
@@ -53,7 +71,7 @@ class NeighborhoodPatterns(KnowledgeBase):
             self.add_rules([R.get(f"{self.layer_name}_{n}_nbhood")(V.X) <= nbhood_body])
             nbhoods += [f"{self.layer_name}_{n}_nbhood"]
 
-        # Chiral center is a carbon atom surrounded by
+        # Chiral center is a carbon atom surrounded by four different atoms
         chiral_connections = [(V.C, f"X{i}", f"B{i}") for i in range(4)]
         chiral_edge_embeddings = [
             R.get(self.edge_embed)(f"B{i}")[self.param_size] for i in range(4)

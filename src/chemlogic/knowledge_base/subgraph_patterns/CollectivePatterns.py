@@ -4,6 +4,13 @@ from chemlogic.knowledge_base.KnowledgeBase import KnowledgeBase
 
 
 class CollectivePatterns(KnowledgeBase):
+    """Collective structural pattern detectors.
+
+    Detects bridge atoms between two rings, shared atoms at ring junctions,
+    and aliphatic carbon chains. Requires `aliphatic_bond`, `carbon`, and
+    cycle predicates (produced by CyclePattern).
+    """
+
     required_keys = [
         "layer_name",
         "param_size",
@@ -15,6 +22,14 @@ class CollectivePatterns(KnowledgeBase):
     ]
 
     def create_template(self):
+        """Generate bridge, shared-atom, and aliphatic chain rules.
+
+        Produces `{layer_name}_bridge(X)`, `{layer_name}_shared_atom(X)`, and
+        `{layer_name}_aliphatic_chain(X)`, aggregated into
+        `{layer_name}_collective_pattern(X)` and contributed to
+        `{layer_name}_pattern(X)`. Also produces the top-level
+        `{layer_name}_subgraph_pattern(X)` combining patterns across paths.
+        """
         # Defining when two atoms are NOT in a same cycle
         self.add_rules(
             [

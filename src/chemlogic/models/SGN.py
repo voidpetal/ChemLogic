@@ -4,6 +4,27 @@ from chemlogic.models.Model import Model
 
 
 class SGN(Model):
+    """Subgraph Network.
+
+    Represents the graph through its connected subgraphs rather than
+    individual nodes. Builds pair-wise representations (order-1) from
+    directly connected nodes and edge embeddings, then composes them
+    recursively up to max_depth to form longer-range subgraph features.
+    Both endpoints of each subgraph contribute to the final node embedding.
+
+        order_1(X, Y)   <= connection(X, Y, B), edge_embed(B), prev(X), prev(Y)
+        order_{d+1}(X, Y) <= order_d(X, Y), order_d(Y, Z)
+        layer(X)         <= order_{max_depth}(X, Y)  [both endpoints]
+
+    Subgraph representations are strictly more expressive than 1-WL for
+    certain graph families relevant to chemistry (e.g. cycles).
+
+    Reference:
+        Xuan et al. "Subgraph Networks With Application to Structural Feature Space Expansion."
+        IEEE TKDE, 2021.
+        https://doi.org/10.1109/tkde.2019.2957755
+    """
+
     def __init__(self, *args, **kwargs):
         kwargs["model_name"] = "sgn"
 
