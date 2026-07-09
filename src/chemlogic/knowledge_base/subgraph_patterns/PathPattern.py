@@ -4,6 +4,15 @@ from chemlogic.knowledge_base.KnowledgeBase import KnowledgeBase
 
 
 class PathPattern(KnowledgeBase):
+    """Path-based reachability pattern detector.
+
+    Builds `{layer_name}_path(X, Y)` predicates encoding reachability up to
+    `max_depth` steps, using a timestep counter. Results are contributed to
+    `{layer_name}_pattern`.
+
+    Args:
+        max_depth (int): Maximum path length. Must be >= 3.
+    """
     required_keys = [
         "layer_name",
         "param_size",
@@ -22,6 +31,11 @@ class PathPattern(KnowledgeBase):
             )
 
     def create_template(self):
+        """Generate path reachability rules up to max_depth steps.
+
+        Produces `{layer_name}_path(X, Y)` using a timestep counter, aggregated
+        into `{layer_name}_pattern(X)`.
+        """
         # Defining constants for keeping track
         for i in range(self.max_depth):
             self.add_rules([(R._next(i, i + 1))])

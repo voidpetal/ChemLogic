@@ -6,18 +6,23 @@ from chemlogic.datasets.Dataset import Dataset
 
 
 class CustomDataset(Dataset):
+    """Dataset loaded from user-provided examples and queries files.
+
+    Accepts explicit paths to pre-formatted NeuraLogic text files. When both
+    paths are given they are validated and used directly; otherwise falls back
+    to the base class behaviour which expects packaged dataset files under
+    `src/chemlogic/data/datasets/`.
+    """
+
     def __init__(self, examples: str, queries: str, param_size: int, dataset_name: str):
-        """
-        Create a custom dataset for training.
+        """Create a CustomDataset.
 
         Args:
-            examples (str): The path to the examples file.
-            queries (str): The path to the queries file.
-            param_size (int): The size of the parameter.
-            dataset_name (str): The name of the dataset
-
+            examples (str): Path to the examples file.
+            queries (str): Path to the queries file.
+            param_size (int): Parameter size for embeddings used by the dataset.
+            dataset_name (str): Name of the dataset, used as a file prefix.
         """
-
         self.examples = examples
         self.queries = queries
 
@@ -48,6 +53,15 @@ class CustomDataset(Dataset):
         )
 
     def load_data(self):
+        """Load dataset from provided file paths.
+
+        If both paths are given they are validated and used to create a
+        FileDataset. Otherwise falls back to the base class which expects
+        packaged dataset files.
+
+        Returns:
+            neuralogic.dataset.FileDataset: The wrapped dataset.
+        """
         if self.examples and self.queries:
             if not os.path.isfile(self.examples):
                 raise FileNotFoundError(

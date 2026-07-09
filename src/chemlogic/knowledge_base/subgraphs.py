@@ -35,7 +35,41 @@ def get_subgraphs(
     collective=False,
     funnel=False,
 ):
-    template = Template()
+    """Build a subgraph pattern template for a given layer.
+
+    Composes cycle, path, Y-shape, neighbourhood, circular, and collective
+    pattern detectors into a single Template that exposes a unified
+    `{layer_name}_subgraph_pattern` predicate wired into the output layer.
+    When `funnel=True` the param_size is forced to 1.
+
+    Args:
+        layer_name (str): Prefix for all generated predicate names.
+        node_embed (str): Node embedding predicate name.
+        edge_embed (str): Edge embedding predicate name.
+        connection (str): Bond connectivity predicate name.
+        param_size (int): Embedding dimension.
+        max_cycle_size (int): Maximum ring size for cycle detection. Default 10.
+        max_depth (int): Maximum path length. Default 5.
+        output_layer_name (str): Output predicate name. Default "predict".
+        output_layer_transformation: NeuraLogic output transformation. Default IDENTITY.
+        single_bond: Single bond predicate name.
+        double_bond: Double bond predicate name.
+        carbon (str): Carbon atom predicate name.
+        atom_types (list[str]): All atom-type predicate names.
+        aliphatic_bonds (list[str]): Aliphatic bond predicate names.
+        cycles (bool): Enable cycle patterns.
+        paths (bool): Enable path patterns.
+        y_shape (bool): Enable Y-shape patterns.
+        nbhoods (bool): Enable neighbourhood patterns.
+        circular (bool): Enable circular/brick patterns.
+        collective (bool): Enable collective (bridge/chain) patterns.
+        funnel (bool): Force param_size=1 for scalar interpretable weights.
+
+    Returns:
+        neuralogic.core.Template: Template containing subgraph feature extraction rules.
+            Produces a `{layer_name}_subgraph_pattern(X)` predicate aggregating all
+            enabled pattern types, wired into `output_layer_name`.
+    """
     if funnel:
         param_size = 1
 
