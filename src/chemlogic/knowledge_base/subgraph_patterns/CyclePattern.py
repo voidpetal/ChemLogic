@@ -4,6 +4,16 @@ from chemlogic.knowledge_base.KnowledgeBase import KnowledgeBase
 
 
 class CyclePattern(KnowledgeBase):
+    """Ring/cycle detector for molecular graphs.
+
+    Generates rules that identify cycles of size `min_cycle_size` up to
+    `max_cycle_size`. Results are aggregated into a `{layer_name}_cycle`
+    predicate and contributed to `{layer_name}_pattern`.
+
+    Args:
+        min_cycle_size (int): Smallest ring size to detect. Must be >= 3.
+        max_cycle_size (int): Largest ring size to detect. Must be > min_cycle_size.
+    """
     required_keys = [
         "layer_name",
         "param_size",
@@ -31,6 +41,11 @@ class CyclePattern(KnowledgeBase):
             )
 
     def create_template(self):
+        """Generate cycle detection rules for sizes min_cycle_size..max_cycle_size.
+
+        Produces `{layer_name}_cycle(X, X0)` for each size, aggregated into
+        `{layer_name}_cycle(X)` and contributed to `{layer_name}_pattern(X)`.
+        """
         def get_cycle(cycle_size):
             # Cycles are paths from a node to itself, with every node on the path being unique
             # cannot use path predicate here, because all the edges are undirected

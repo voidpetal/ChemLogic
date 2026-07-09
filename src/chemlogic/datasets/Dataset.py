@@ -8,6 +8,14 @@ from chemlogic.utils.ChemTemplate import ChemTemplate as Template
 
 
 class Dataset(Template):
+    """Base class for all ChemLogic datasets.
+
+    Stores atom/bond type metadata, loads the underlying FileDataset via
+    `load_data`, and creates embedding rules via `create_template`. Concrete
+    subclasses should override `load_data` when the data source is not the
+    packaged `data/datasets/` folder.
+    """
+
     def __init__(
         self,
         dataset_name: str,
@@ -30,6 +38,32 @@ class Dataset(Template):
         halogens: list = None,
         param_size: int = 1,
     ):
+        """Create a dataset configuration.
+
+        Args:
+            dataset_name (str): Dataset identifier, also used as the folder name
+                under `data/datasets/`.
+            node_embed (str): Predicate name for node embeddings.
+            edge_embed (str): Predicate name for edge embeddings.
+            connection (str): Predicate name for the bond connectivity relation.
+            atom_types (list[str]): All atom-type predicate names in this dataset.
+            key_atom_type (list[str]): Subset of atom types treated as key atoms
+                (heteroatoms) by the chemical rules.
+            bond_types (list[str]): All bond-type predicate names.
+            single_bond (str): Predicate name for single bonds.
+            double_bond (str): Predicate name for double bonds.
+            triple_bond (str): Predicate name for triple bonds.
+            aliphatic_bonds (list[str]): Predicate names for aliphatic bond types.
+            aromatic_bonds (list[str]): Predicate names for aromatic bond types.
+            carbon (str): Predicate name for carbon atoms. Default "c".
+            oxygen (str): Predicate name for oxygen atoms. Default "o".
+            hydrogen (str): Predicate name for hydrogen atoms. Default "h".
+            nitrogen (str): Predicate name for nitrogen atoms. Default "n".
+            sulfur (str): Predicate name for sulfur atoms. Default "s".
+            halogens (list[str]): Predicate names for halogen atoms. Defaults to
+                ["f", "cl", "br", "i"].
+            param_size (int): Embedding dimension. Must be a positive integer.
+        """
         super().__init__()
         # Validate string inputs
         for name, value in {
@@ -106,6 +140,15 @@ class Dataset(Template):
         self.create_template()
 
     def load_data(self):
+        """Load dataset files from the packaged `data/datasets/<name>` folder.
+
+        Expects `examples.txt` and `queries.txt` under
+        `src/chemlogic/data/datasets/<dataset_name>/`. Override this in
+        subclasses that load data from other sources.
+
+        Returns:
+            neuralogic.dataset.FileDataset: The wrapped dataset.
+        """
         # Get the path to the current file and navigate to the package root
         src_dir = Path(__file__).resolve().parent.parent
         dataset_path = src_dir / "data" / "datasets" / self.dataset_name
@@ -118,6 +161,10 @@ class Dataset(Template):
         )
 
     def create_template(self):
+        """Create embedding rules mapping atom/bond types to embedding predicates.
+
+        Called automatically from `__init__`. Does not need to be invoked manually.
+        """
         self.add_rules(
             [
                 (R.get(self.node_embed)(V.A)[self.param_size,] <= R.get(atom)(V.A))

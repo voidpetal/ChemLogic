@@ -1,5 +1,4 @@
 import mlflow
-
 from chemlogic.utils.Pipeline import ArchitectureType, Pipeline
 
 
@@ -16,6 +15,34 @@ def main(
     labels=None,
     task="classification",
 ):
+    """Run a single experiment/training cycle and log results to MLflow.
+
+    Designed to be called from an Optuna objective function or any HPO
+    framework. Reads hyperparameter suggestions from `trial`, constructs a
+    Pipeline, runs the training/testing cycle, and logs params and metrics
+    to the active MLflow run.
+
+    Args:
+        trial: An object exposing the `.suggest_*` API (e.g. Optuna Trial).
+        dataset_name (str): Dataset identifier accepted by Pipeline.
+        model_name (str): Model architecture key accepted by Pipeline.
+        chemical_rules (bool | None): If truthy, chemical rule flags are
+            sampled from `trial` and passed to the pipeline.
+        subgraphs (bool | None): If truthy, subgraph flags and depth
+            parameters are sampled from `trial`.
+        architecture (str): Architecture mode string ("bare", "CCE", "CCD").
+            Default "bare".
+        batches (int): Number of dataset batches. Default 1.
+        smiles_list (list[str] | None): Optional SMILES strings for a
+            custom dataset.
+        labels (list | None): Labels corresponding to `smiles_list`.
+        task (str): Task type — auto-detected from labels if None. Default
+            "classification".
+
+    Returns:
+        tuple: (metric, pipeline) where metric is AUROC (classification) or
+            R² (regression) and pipeline is the trained Pipeline instance.
+    """
     with mlflow.start_run():
         max_subgraph_depth = 0
         max_cycle_size = 0
@@ -66,7 +93,7 @@ def main(
             funnel=funnel,
             smiles_list=smiles_list,
             labels=labels,
-            task=task,
+            task=task
         )
 
         train_loss, test_loss, metric, evaluator = pipeline.train_test_cycle(

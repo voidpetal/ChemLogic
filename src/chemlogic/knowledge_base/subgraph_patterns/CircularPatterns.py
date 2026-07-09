@@ -4,6 +4,12 @@ from chemlogic.knowledge_base.KnowledgeBase import KnowledgeBase
 
 
 class CircularPatterns(KnowledgeBase):
+    """Circular and brick-like subgraph pattern detectors.
+
+    Detects heterocycles (non-carbon atoms in rings) and brick motifs
+    (alternating single/double bond 4-cycles). Requires `single_bond`,
+    `double_bond`, and `carbon` predicates.
+    """
     required_keys = [
         "layer_name",
         "param_size",
@@ -16,6 +22,12 @@ class CircularPatterns(KnowledgeBase):
     ]
 
     def create_template(self):
+        """Generate circular pattern rules.
+
+        Produces `{layer_name}_heterocycle(X)` and `{layer_name}_brick(X)`,
+        aggregated into `{layer_name}_circular(X)` and contributed to
+        `{layer_name}_pattern(X)`.
+        """
         # Defining Carbon negation helper predicate and heterocycles
         self.add_rules(
             [R.get(f"{self.layer_name}_n_c")(V.X) <= R.get(self.carbon)(V.X)]

@@ -39,6 +39,48 @@ def get_chem_rules(
     key_atoms: list = None,
     funnel=False,
 ):
+    """Build a chemical-rule template for a given layer.
+
+    Composes functional group templates (general groups, hydrocarbons, oxygen,
+    nitrogen, sulfur, relaxations) and wires the output into the specified
+    output layer. When `funnel=True` the param_size is forced to 1, making
+    each rule's weight a single interpretable scalar.
+
+    Args:
+        layer_name (str): Prefix used for all generated predicate names.
+        node_embed (str): Node embedding predicate name.
+        edge_embed (str): Edge embedding predicate name.
+        connection (str): Bond connectivity predicate name.
+        param_size (int): Embedding dimension.
+        halogens (list[str]): Halogen atom predicate names.
+        output_layer_name (str): Output predicate to wire rules into. Default "predict".
+        output_layer_transformation: NeuraLogic output transformation. Default IDENTITY.
+        single_bond: Single bond predicate name.
+        double_bond: Double bond predicate name.
+        triple_bond: Triple bond predicate name.
+        aromatic_bonds (list[str]): Aromatic bond predicate names.
+        carbon (str): Carbon atom predicate name.
+        hydrogen (str): Hydrogen atom predicate name.
+        oxygen (str): Oxygen atom predicate name.
+        nitrogen (str): Nitrogen atom predicate name.
+        sulfur (str): Sulfur atom predicate name.
+        path: Path predicate name, if subgraph paths are used.
+        hydrocarbons (bool): Enable hydrocarbon group rules.
+        nitro (bool): Enable nitrogen-containing group rules.
+        sulfuric (bool): Enable sulfur-containing group rules.
+        oxy (bool): Enable oxygen-containing group rules.
+        relaxations (bool): Enable relaxed/generalised pattern rules.
+        key_atoms (list[str]): Key atom predicate names for general rules.
+        funnel (bool): Force param_size=1 for scalar interpretable weights.
+
+    Returns:
+        neuralogic.core.Template: Template containing rules for the enabled
+            functional group categories. The template defines predicates of
+            the form `{layer_name}_<group>` (e.g. `chem_nitro`, `chem_hydroxyl`)
+            aggregated into `{layer_name}_chem_rules(X)`, which is wired into
+            `output_layer_name`.
+    """
+
     template = Template()
     if funnel:
         param_size = 1

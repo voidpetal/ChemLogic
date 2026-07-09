@@ -1,10 +1,16 @@
 ## TODO: Knowledge base builder, choose which chemical rules or subgraph rules you want, then general rules, oxy, etc each one class. Later will modularize and extend to accept each individual.
 
-
 from chemlogic.utils.ChemTemplate import ChemTemplate as Template
 
 
 class KnowledgeBase(Template):
+    """Base class for functional group and subgraph pattern templates.
+
+    Validates required configuration keys and exposes the shared fields
+    (bond predicates, atom predicates, cycle/depth bounds) consumed by all
+    knowledge-base subclasses.
+    """
+
     required_keys = ["param_size", "layer_name"]
 
     def __init__(
@@ -24,7 +30,7 @@ class KnowledgeBase(Template):
         oxygen: str = "",
         nitrogen: str = "",
         sulfur: str = "",
-        min_cycle_size: int = 3,  # cycles os size 2 do not make sense
+        min_cycle_size: int = 3,  # cycles of size 2 do not make sense
         max_cycle_size: int = 8,
         atom_type: str = "",
         nbh_min_size: int = 3,
@@ -32,6 +38,36 @@ class KnowledgeBase(Template):
         max_depth: int = 3,
         **kwargs,
     ):
+        """Create a KnowledgeBase template.
+
+        Args:
+            layer_name (str): Prefix used for all generated predicate names.
+            param_size (tuple): Parameter/embedding size as a tuple, e.g. (4,) or (4, 4).
+            node_embed (str): Predicate name for node embeddings.
+            edge_embed (str): Predicate name for edge embeddings.
+            connection (str): Predicate name for the bond connectivity relation.
+            single_bond (str): Predicate name for single bonds.
+            double_bond (str): Predicate name for double bonds.
+            triple_bond (str): Predicate name for triple bonds.
+            aromatic_bond (str): Predicate name for aromatic bonds.
+            aliphatic_bond (str): Predicate name for aliphatic bonds.
+            hydrogen (str): Predicate name for hydrogen atoms.
+            carbon (str): Predicate name for carbon atoms.
+            oxygen (str): Predicate name for oxygen atoms.
+            nitrogen (str): Predicate name for nitrogen atoms.
+            sulfur (str): Predicate name for sulfur atoms.
+            min_cycle_size (int): Minimum ring size to detect. Default 3.
+            max_cycle_size (int): Maximum ring size to detect. Default 8.
+            atom_type (str): Predicate name for generic atom type (used by neighborhood patterns).
+            nbh_min_size (int): Minimum neighborhood size. Default 3.
+            nbh_max_size (int): Maximum neighborhood size. Default 5.
+            max_depth (int): Maximum path/chain depth. Default 3.
+
+        Note:
+            `create_template()` is called automatically at the end of `__init__`.
+            Subclasses must implement `create_template()` to populate the Template
+            with their rules.
+        """
         super().__init__()
 
         local_vars = locals()
