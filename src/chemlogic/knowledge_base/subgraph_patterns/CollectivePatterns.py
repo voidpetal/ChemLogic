@@ -10,6 +10,7 @@ class CollectivePatterns(KnowledgeBase):
     and aliphatic carbon chains. Requires `aliphatic_bond`, `carbon`, and
     cycle predicates (produced by CyclePattern).
     """
+
     required_keys = [
         "layer_name",
         "param_size",

@@ -10,6 +10,7 @@ class CircularPatterns(KnowledgeBase):
     (alternating single/double bond 4-cycles). Requires `single_bond`,
     `double_bond`, and `carbon` predicates.
     """
+
     required_keys = [
         "layer_name",
         "param_size",

@@ -1,4 +1,4 @@
-from neuralogic.core import R, Template, Transformation, V
+from neuralogic.core import R, Transformation, V
 
 from chemlogic.knowledge_base.subgraph_patterns.CircularPatterns import CircularPatterns
 from chemlogic.knowledge_base.subgraph_patterns.CollectivePatterns import (
@@ -10,6 +10,7 @@ from chemlogic.knowledge_base.subgraph_patterns.NeighborhoodPatterns import (
 )
 from chemlogic.knowledge_base.subgraph_patterns.PathPattern import PathPattern
 from chemlogic.knowledge_base.subgraph_patterns.YShapePattern import YShapePattern
+from chemlogic.utils.ChemTemplate import ChemTemplate
 
 
 def get_subgraphs(
@@ -72,6 +73,8 @@ def get_subgraphs(
     """
     if funnel:
         param_size = 1
+
+    template = ChemTemplate()
 
     # Aggregating the patterns
     if param_size == 1:

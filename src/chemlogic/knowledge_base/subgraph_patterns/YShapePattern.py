@@ -10,6 +10,7 @@ class YShapePattern(KnowledgeBase):
     (two Y units joined at a shared atom). Requires `double_bond` predicate.
     Results are contributed to `{layer_name}_pattern`.
     """
+
     required_keys = [
         "layer_name",
         "param_size",
