@@ -7,8 +7,8 @@ from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy, ErrorFunction
 from neuralogic.optim import Adam, Optimizer
 from sklearn.metrics import r2_score, roc_auc_score
-from sklearn.preprocessing import label_binarize
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import label_binarize
 
 from chemlogic.datasets.datasets import get_dataset
 from chemlogic.knowledge_base.chemrules import get_chem_rules
@@ -16,6 +16,7 @@ from chemlogic.knowledge_base.subgraphs import get_subgraphs
 from chemlogic.models.models import get_model
 from chemlogic.utils.Checkpoint import Checkpoint
 from chemlogic.utils.ChemTemplate import ChemTemplate
+from chemlogic.utils.config import PipelineConfig, TrainConfig
 
 
 class ArchitectureType(Enum):
@@ -85,40 +86,53 @@ class Pipeline:
         :return: A tuple containing the template and dataset.
         """
 
-        smiles_provided = smiles_list is not None
-        labels_provided = labels is not None
-        if smiles_provided != labels_provided:
-            raise ValueError(
-                "If building a dataset from SMILES, make sure to provide both `smiles_list` and `labels` params."
-            )
-
-        if smiles_provided and task is None:
+        if smiles_list is not None and task is None:
             task, num_outputs = Pipeline._infer_task(labels)
 
         if task is None:
             task = "classification"
 
-        if smiles_provided:
+        if (smiles_list is not None) != (labels is not None):
+            raise ValueError(
+                "If building a dataset from SMILES, provide both `smiles_list` and `labels`."
+            )
+
+        cfg = PipelineConfig(
+            dataset_name=dataset_name,
+            model_name=model_name,
+            param_size=param_size,
+            layers=layers,
+            max_depth=max_depth,
+            max_subgraph_depth=max_subgraph_depth,
+            max_cycle_size=max_cycle_size,
+            subgraphs=subgraphs,
+            chem_rules=chem_rules,
+            architecture=architecture.value
+            if isinstance(architecture, ArchitectureType)
+            else architecture,
+            funnel=funnel,
+            task=task,
+            num_outputs=num_outputs,
+        )
+
+        if smiles_list is not None:
             dataset_args = {
                 "smiles_list": smiles_list,
                 "labels": labels,
                 "atom_features": atom_features,
                 "bond_features": bond_features,
                 "graph_features": graph_features,
-                "num_outputs": num_outputs,
+                "num_outputs": cfg.num_outputs,
             }
         else:
             dataset_args = {"examples": examples, "queries": queries}
 
-        dataset = get_dataset(dataset_name, param_size, **dataset_args)
-        tasks = ["regression", "classification", "multi_class", "multi_regression"]
-        if task not in tasks:
-            raise ValueError(f"Task must be one of: {tasks}.")
+        dataset = get_dataset(cfg.dataset_name, cfg.param_size, **dataset_args)
 
         transformation = None
-        if task in ("classification", "multi_class"):
+        if cfg.task in ("classification", "multi_class"):
             transformation = Transformation.SIGMOID
-        elif task in ("regression", "multi_regression"):
+        elif cfg.task in ("regression", "multi_regression"):
             transformation = Transformation.IDENTITY
 
         template = ChemTemplate()
@@ -175,30 +189,33 @@ class Pipeline:
 
         template += get_model(
             model_name,
-            layers,
+            cfg.layers,
             io_layers["nn_input"],
             dataset.edge_embed,
             dataset.connection,
-            param_size,
-            num_outputs=num_outputs,
+            cfg.param_size,
+            num_outputs=cfg.num_outputs,
             edge_types=dataset.bond_types,
-            max_depth=max_depth,
+            max_depth=cfg.max_depth,
             local=local,
             output_layer_name=io_layers["nn_output"],
             output_layer_transformation=transformation,
         )
 
-        if chem_rules:
+        if cfg.chem_rules:
             try:
                 # TODO: create a generator class
-                hydrocarbons, oxy, nitro, sulfuric, relaxations = chem_rules
+                hydrocarbons, oxy, nitro, sulfuric, relaxations = cfg.chem_rules
             except Exception:
                 hydrocarbons, oxy, nitro, sulfuric, relaxations = (True,) * 5
 
             chem_path = (
                 "sub_path"
-                if subgraphs
-                and ((type(subgraphs) in (list, tuple) and subgraphs[1]) or subgraphs)
+                if cfg.subgraphs
+                and (
+                    (type(cfg.subgraphs) in (list, tuple) and cfg.subgraphs[1])
+                    or cfg.subgraphs
+                )
                 else None
             )
 
@@ -207,7 +224,7 @@ class Pipeline:
                 io_layers["chem_input"],
                 dataset.edge_embed,
                 dataset.connection,
-                param_size,
+                cfg.param_size,
                 dataset.halogens,
                 output_layer_name=io_layers["chem_output"],
                 output_layer_transformation=transformation,
@@ -227,12 +244,12 @@ class Pipeline:
                 oxy=oxy,
                 relaxations=relaxations,
                 key_atoms=dataset.key_atom_type,
-                funnel=funnel,
+                funnel=cfg.funnel,
             )
 
-        if subgraphs:
+        if cfg.subgraphs:
             try:
-                cycles, paths, y_shape, nbhoods, circular, collective = subgraphs
+                cycles, paths, y_shape, nbhoods, circular, collective = cfg.subgraphs
             except Exception:
                 cycles, paths, y_shape, nbhoods, circular, collective = (True,) * 6
 
@@ -241,9 +258,9 @@ class Pipeline:
                 io_layers["subg_input"],
                 dataset.edge_embed,
                 dataset.connection,
-                param_size,
-                max_cycle_size=max_cycle_size,
-                max_depth=max_subgraph_depth,
+                cfg.param_size,
+                max_cycle_size=cfg.max_cycle_size,
+                max_depth=cfg.max_subgraph_depth,
                 output_layer_name=io_layers["subg_output"],
                 output_layer_transformation=transformation,
                 single_bond=dataset.single_bond,
@@ -257,33 +274,16 @@ class Pipeline:
                 nbhoods=nbhoods,
                 circular=circular,
                 collective=collective,
-                funnel=funnel,
+                funnel=cfg.funnel,
             )
 
         self.dataset = dataset
         self.template = dataset + template
 
-        self.task = task
-        self.num_outputs = num_outputs
+        self.task = cfg.task
+        self.num_outputs = cfg.num_outputs
 
-        # Store architecture parameters for checkpoint saving
-        self._architecture_params = {
-            "dataset_name": dataset_name,
-            "model_name": model_name,
-            "param_size": param_size,
-            "layers": layers,
-            "max_depth": max_depth,
-            "max_subgraph_depth": max_subgraph_depth,
-            "max_cycle_size": max_cycle_size,
-            "subgraphs": subgraphs,
-            "chem_rules": chem_rules,
-            "architecture": architecture.value
-            if isinstance(architecture, ArchitectureType)
-            else architecture,
-            "funnel": funnel,
-            "task": task,
-            "num_outputs": num_outputs,
-        }
+        self._architecture_params = cfg.to_architecture_dict()
 
     @staticmethod
     def _infer_task(labels) -> tuple[str, int]:
@@ -345,29 +345,43 @@ class Pipeline:
         :param checkpoint_dir: Directory for checkpoint files. Defaults to checkpoints/{dataset_name}/
         :return: The training loss, testing loss, AUROC validation score for classification or R2 for regression tasks and the evaluator object.
         """
+        train_cfg = TrainConfig(
+            lr=lr,
+            epochs=epochs,
+            split_ratio=split_ratio,
+            batches=batches,
+            early_stopping_threshold=early_stopping_threshold,
+            early_stopping_rounds=early_stopping_rounds,
+            checkpoint_every=checkpoint_every,
+        )
+
         if error_function is None:
             error_function = MSE if self.task == "regression" else CrossEntropy
 
         settings = Settings(
-            optimizer=optimizer(lr=lr), epochs=epochs, error_function=error_function()
+            optimizer=optimizer(lr=train_cfg.lr),
+            epochs=train_cfg.epochs,
+            error_function=error_function(),
         )
         # TODO: log instead of print
-        print(f"Building dataset in {batches} batches")
+        print(f"Building dataset in {train_cfg.batches} batches")
         evaluator = get_evaluator(self.template, settings)
-        built_dataset = evaluator.build_dataset(self.dataset.data, batch_size=batches)
+        built_dataset = evaluator.build_dataset(
+            self.dataset.data, batch_size=train_cfg.batches
+        )
 
         train_dataset, test_dataset = train_test_split(
-            built_dataset.samples, train_size=split_ratio, random_state=42
+            built_dataset.samples, train_size=train_cfg.split_ratio, random_state=42
         )
         print("Training model")
         train_losses = self._train_model(
             evaluator,
             train_dataset,
-            settings.epochs,
-            early_stopping_rounds,
-            early_stopping_threshold,
-            checkpoint_every=checkpoint_every,
-            checkpoint_dir=checkpoint_dir,
+            train_cfg.epochs,
+            train_cfg.early_stopping_rounds,
+            train_cfg.early_stopping_threshold,
+            checkpoint_every=train_cfg.checkpoint_every,
+            checkpoint_dir=Path(checkpoint_dir) if checkpoint_dir is not None else None,
         )
         test_loss, other_metric = self._evaluate_model(evaluator, test_dataset)
 
@@ -458,7 +472,8 @@ class Pipeline:
         ):
             predictions.append(y_hat)
             t = sample.java_sample.target
-            targets.append(list(t.values) if hasattr(t, "values") else t.value)
+            raw = getattr(t, "values", None)
+            targets.append(list(raw) if isinstance(raw, (list, tuple)) else t.value)
 
         metric_score = None
         if self.task == "classification":
@@ -473,10 +488,12 @@ class Pipeline:
             all_classes = list(range(self.num_outputs))
             # Softmax-normalize sigmoid outputs so they sum to 1 (required by roc_auc_score)
             import math
+
             def softmax(v):
                 e = [math.exp(x) for x in v]
                 s = sum(e)
                 return [x / s for x in e]
+
             probs = [softmax(p) for p in predictions]
             metric_score = roc_auc_score(
                 label_binarize(target_ints, classes=all_classes),
@@ -497,7 +514,7 @@ class Pipeline:
         elif self.task == "multi_regression":
             metric_score = r2_score(targets, predictions, multioutput="uniform_average")
             loss = sum(
-                sum((p - t) ** 2 for p, t in zip(pred, target))
+                sum((p - t) ** 2 for p, t in zip(pred, target, strict=False))
                 for pred, target in zip(predictions, targets, strict=False)
             ) / len(test_dataset)
 

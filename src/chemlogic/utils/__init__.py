@@ -1,4 +1,11 @@
 from .ChemTemplate import ChemTemplate
-from .Pipeline import Pipeline, ArchitectureType
+from .config import PipelineConfig, TrainConfig
+from .Pipeline import ArchitectureType, Pipeline
 
-__all__ = ["ChemTemplate", "Pipeline", "ArchitectureType"]
+__all__ = [
+    "ChemTemplate",
+    "Pipeline",
+    "ArchitectureType",
+    "PipelineConfig",
+    "TrainConfig",
+]
