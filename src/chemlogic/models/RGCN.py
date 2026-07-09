@@ -4,6 +4,24 @@ from chemlogic.models.Model import Model
 
 
 class RGCN(Model):
+    """Relational Graph Convolutional Network.
+
+    Extends GNN to heterogeneous graphs by assigning a separate weight matrix
+    to each edge type (relation). Each node aggregates neighbour representations
+    grouped by relation type, allowing the model to distinguish, e.g., single
+    bonds from aromatic bonds without collapsing them into a shared embedding.
+
+        layer_k(X) <= layer_{k-1}(X), layer_{k-1}(Y), connection(X, Y, B), edge_type_r(B)
+                      -- one rule per relation type r
+
+    Requires at least two edge types; with one type it reduces to a standard GNN.
+
+    Reference:
+        Schlichtkrull et al. "Modeling Relational Data with Graph Convolutional Networks."
+        arXiv:1703.06103, 2017.
+        https://arxiv.org/abs/1703.06103
+    """
+
     def __init__(self, *args, **kwargs):
         kwargs["model_name"] = "rgcn"
 

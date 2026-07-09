@@ -5,6 +5,28 @@ from chemlogic.utils.ChemTemplate import ChemTemplate as Template
 
 
 class CWNet(Model):
+    """CW-Network (Cellular Weisfeiler-Lehman Network).
+
+    Lifts message passing from nodes and edges to an explicit cellular complex:
+    atoms (0-cells), bonds (1-cells), and rings (2-cells) each maintain their
+    own embeddings and exchange messages along adjacency boundaries.
+
+    Per layer:
+    - Bond embeddings aggregate from their endpoint atoms and from co-ring bonds
+      (bonds sharing a ring of size 3..max_ring_size).
+    - Node embeddings aggregate from neighbour nodes, their connecting bond, and
+      bond embeddings from shared rings.
+
+    This topology-aware propagation lets the model natively distinguish ring
+    systems and ring-fused structures that 1-WL and standard GNNs cannot separate,
+    which is directly relevant to aromaticity and ring-based pharmacophores.
+
+    Reference:
+        Bodnar et al. "Weisfeiler and Lehman Go Cellular: CW Networks."
+        arXiv:2106.12575, 2022.
+        https://arxiv.org/abs/2106.12575
+    """
+
     def __init__(self, *args, **kwargs):
         kwargs["model_name"] = "cw"
 
