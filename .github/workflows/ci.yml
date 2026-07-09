@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install ruff
+        run: pip install ruff
+      - name: Lint
+        run: ruff check src/
+      - name: Format check
+        run: ruff format --check src/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PDM
+        run: pip install pdm
+      - name: Install dependencies
+        run: pdm install --dev
+      - name: Run tests with coverage
+        run: pdm run pytest --cov=src/chemlogic --cov-report=xml --cov-fail-under=70
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PDM and twine
+        run: pip install pdm twine
+      - name: Build package
+        run: pdm build
+      - name: Check package metadata
+        run: twine check dist/*
+      - name: Test import
+        run: |
+          pip install dist/*.whl
+          python -c "import chemlogic; print('ChemLogic import OK')"
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PDM
+        run: pip install pdm
+      - name: Install dependencies
+        run: pdm install --dev
+      - name: Run pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit --progress-spinner=off
