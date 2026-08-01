@@ -42,7 +42,7 @@ jobs:
       - name: Run tests with coverage
         run: pdm run pytest --cov=src/chemlogic --cov-report=xml --cov-fail-under=70
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage.xml
