@@ -7,7 +7,7 @@ authors = [
 ]
 requires-python = "==3.11.*"
 dependencies = [
-    "neuralogic==0.8.0",
+    "neuralogic==0.9.1",
     "scikit-learn>=1.6.1",
     "RDKit>=2025.3.2",
     "pysmiles>=2.0.0",
