@@ -23,18 +23,17 @@ This experiment compares:
 3. Broadcast: New approach (hypothesis: should help or be neutral)
 """
 
-import pandas as pd
-import numpy as np
 import neuralogic
+import numpy as np
+import pandas as pd
+from neuralogic.core import Settings, Transformation
+from neuralogic.nn.loss import MSE
+from neuralogic.nn.optim import Adam
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
 from chemlogic.datasets.SmilesDataset import SmilesDataset
 from chemlogic.models.models import get_model
-from neuralogic.core import Settings, Transformation
-from neuralogic.nn import get_evaluator
-from neuralogic.nn.loss import MSE
-from neuralogic.optim import Adam
 
 
 def run_experiment(
@@ -89,17 +88,18 @@ def run_experiment(
     # Training settings
     settings = Settings(
         optimizer=Adam(lr=lr),
-        epochs=epochs,
         error_function=MSE(),
     )
 
     # Create evaluator and train
-    evaluator = get_evaluator(dataset, settings)
+    evaluator = dataset.build(settings)
     print(f"Training for {epochs} epochs...")
     built_dataset = evaluator.build_dataset(train_data)
 
     train_losses = []
-    for epoch, (loss, _) in enumerate(evaluator.train(built_dataset)):
+    for epoch in range(epochs):
+        evaluator.train(built_dataset)
+        loss = evaluator.loss(built_dataset)
         train_losses.append(loss)
         if epoch % 500 == 0:
             print(f"  Epoch {epoch}: loss = {loss:.4f}")
@@ -118,7 +118,7 @@ def run_experiment(
 
     # Get predictions
     predictions = []
-    for y_hat in evaluator.test(built_test, generator=False):
+    for y_hat in evaluator.test(built_test):
         predictions.append(float(y_hat))
 
     # Calculate metrics

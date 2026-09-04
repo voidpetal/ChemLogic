@@ -1,7 +1,6 @@
 import unittest
 
-from neuralogic.core import Settings, Template
-from neuralogic.nn import get_evaluator
+from neuralogic.core import Model, Settings
 
 from chemlogic.datasets import (
     SmilesDataset,
@@ -73,7 +72,7 @@ class TestSubgraphPatternModules(unittest.TestCase):
         dataset += kb
         dataset.flatten()
 
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
         dataset.clear()
 
@@ -86,7 +85,7 @@ class TestSubgraphPatternModules(unittest.TestCase):
             "carbon": "C",
         }
         pattern = CircularPatterns(**args)
-        self.assertIsInstance(pattern, Template)
+        self.assertIsInstance(pattern, Model)
 
     def test_circular_missing_required_param(self):
         required = CircularPatterns.required_keys
@@ -118,7 +117,7 @@ class TestSubgraphPatternModules(unittest.TestCase):
             "max_depth": 3,
         }
         pattern = CollectivePatterns(**args)
-        self.assertIsInstance(pattern, Template)
+        self.assertIsInstance(pattern, Model)
 
     def test_collective_missing_required_param(self):
         required = CollectivePatterns.required_keys
@@ -163,7 +162,7 @@ class TestSubgraphPatternModules(unittest.TestCase):
             "max_cycle_size": 6,
         }
         pattern = CyclePattern(**args)
-        self.assertIsInstance(pattern, Template)
+        self.assertIsInstance(pattern, Model)
 
     def test_cycle_invalid_min_cycle_size(self):
         args = {
@@ -201,7 +200,7 @@ class TestSubgraphPatternModules(unittest.TestCase):
             "nbh_max_size": 5,
         }
         pattern = NeighborhoodPatterns(**args)
-        self.assertIsInstance(pattern, Template)
+        self.assertIsInstance(pattern, Model)
 
     def test_neighborhood_invalid_nbh_min_size(self):
         args = {
@@ -240,7 +239,7 @@ class TestSubgraphPatternModules(unittest.TestCase):
             "max_depth": 4,
         }
         pattern = PathPattern(**args)
-        self.assertIsInstance(pattern, Template)
+        self.assertIsInstance(pattern, Model)
 
     def test_path_invalid_max_depth(self):
         args = {
@@ -257,7 +256,7 @@ class TestSubgraphPatternModules(unittest.TestCase):
             "double_bond": "db",
         }
         pattern = YShapePattern(**args)
-        self.assertIsInstance(pattern, Template)
+        self.assertIsInstance(pattern, Model)
 
     def test_yshape_missing_required_param(self):
         args = {**self.common_args}

@@ -1,5 +1,7 @@
 import unittest
 
+from neuralogic.core import Model as NeuralogicModel
+
 from chemlogic.models import (
     GNN,
     KGNN,
@@ -11,7 +13,6 @@ from chemlogic.models import (
     Model,
     get_model,
 )
-from chemlogic.utils.ChemTemplate import ChemTemplate as Template
 from chemlogic.utils.Pipeline import Pipeline
 
 
@@ -56,7 +57,7 @@ class TestModel(unittest.TestCase):
         model = Model(**self.valid_args)
         self.assertEqual(model.model_name, "test_model")
         self.assertEqual(model.layers, 2)
-        self.assertIsInstance(model, Template)
+        self.assertIsInstance(model, NeuralogicModel)
 
     def test_param_size_shape(self):
         model = Model(**self.valid_args)
@@ -114,7 +115,7 @@ class TestModels(unittest.TestCase):
     def test_gnn_instantiation(self):
         model = GNN(**self.args)
         self.assertEqual(model.model_name, "gnn")
-        self.assertIsInstance(model, Template)
+        self.assertIsInstance(model, NeuralogicModel)
 
     def test_gnn_build_layer_structure(self):
         model = GNN(**self.args)
@@ -130,7 +131,7 @@ class TestModels(unittest.TestCase):
         model = RGCN(**self.args)
         self.assertEqual(model.model_name, "rgcn")
         self.assertEqual(model.edge_types, ["bond", "aromatic"])
-        self.assertIsInstance(model, Template)
+        self.assertIsInstance(model, NeuralogicModel)
 
     def test_rgcn_missing_edge_types(self):
         args = {k: v for k, v in self.args.items() if k != "edge_types"}
@@ -162,7 +163,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(model.model_name, "kgnn")
         self.assertEqual(model.max_depth, 3)
         self.assertTrue(model.local)
-        self.assertIsInstance(model, Template)
+        self.assertIsInstance(model, NeuralogicModel)
 
     def test_kgnn_invalid_local_type(self):
         with self.assertRaises(TypeError):
@@ -184,7 +185,7 @@ class TestModels(unittest.TestCase):
         model = SGN(**self.args)
         self.assertEqual(model.model_name, "sgn")
         self.assertEqual(model.max_depth, 3)
-        self.assertIsInstance(model, Template)
+        self.assertIsInstance(model, NeuralogicModel)
 
     def test_sgn_invalid_max_depth(self):
         with self.assertRaises(TypeError):
@@ -201,7 +202,7 @@ class TestModels(unittest.TestCase):
     def test_egognn_instantiation(self):
         model = EgoGNN(**self.args)
         self.assertEqual(model.model_name, "ego")
-        self.assertIsInstance(model, Template)
+        self.assertIsInstance(model, NeuralogicModel)
 
     def test_egognn_build_layer_structure(self):
         model = EgoGNN(**self.args)
@@ -213,7 +214,7 @@ class TestModels(unittest.TestCase):
         model = DiffusionCNN(**self.args)
         self.assertEqual(model.model_name, "diffusion_cnn")
         self.assertEqual(model.max_depth, 3)
-        self.assertIsInstance(model, Template)
+        self.assertIsInstance(model, NeuralogicModel)
 
     def test_diffusioncnn_invalid_max_depth(self):
         with self.assertRaises(TypeError):
@@ -237,7 +238,7 @@ class TestModels(unittest.TestCase):
         model = CWNet(**self.args)
         self.assertEqual(model.model_name, "cw")
         self.assertEqual(model.max_ring_size, 6)
-        self.assertIsInstance(model, Template)
+        self.assertIsInstance(model, NeuralogicModel)
 
     def test_cwnet_invalid_max_ring_size(self):
         with self.assertRaises(TypeError):
@@ -247,7 +248,7 @@ class TestModels(unittest.TestCase):
 
     def test_cwnet_create_template_structure(self):
         model = CWNet(**self.args)
-        rules = model.template
+        rules = list(model)
         self.assertGreaterEqual(len(rules), 4)
         self.assertTrue(any("cw" in str(rule) for rule in rules))
 

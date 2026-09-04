@@ -1,7 +1,6 @@
 import unittest
 
 from neuralogic.core import R, Settings, V
-from neuralogic.nn import get_evaluator
 
 from chemlogic.datasets import (
     COX,
@@ -261,7 +260,7 @@ class TestDatasetsBuildable(unittest.TestCase):
         )
 
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_blood_brain_barrier_buildable(self):
@@ -272,7 +271,7 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="blood_brain_barrier",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_carcinogenous_buildable(self):
@@ -283,7 +282,7 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="carcinogenous",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_cyp2c9_substrate_buildable(self):
@@ -294,7 +293,7 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="cyp2c9_substrate",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_cyp2d6_substrate_buildable(self):
@@ -305,7 +304,7 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="cyp2d6_substrate",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_cyp3a4_substrate_buildable(self):
@@ -316,7 +315,7 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="cyp3a4_substrate",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_human_intestinal_absorption_buildable(self):
@@ -327,7 +326,7 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="human_intestinal_absorption",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_oral_bioavailability_buildable(self):
@@ -338,7 +337,7 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="oral_bioavailability",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_p_glycoprotein_inhibition_buildable(self):
@@ -349,7 +348,7 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="p_glycoprotein_inhibition",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_pampa_permeability_buildable(self):
@@ -360,7 +359,7 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="pampa_permeability",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_skin_reaction_buildable(self):
@@ -371,55 +370,55 @@ class TestDatasetsBuildable(unittest.TestCase):
             dataset_name="skin_reaction",
         )
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_cox_buildable(self):
         dataset = COX(param_size=1)
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_dhfr_buildable(self):
         dataset = DHFR(param_size=1)
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_er_buildable(self):
         dataset = ER(param_size=1)
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_mutag_buildable(self):
         dataset = MUTAG(param_size=1)
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_ptc_buildable(self):
         dataset = PTC(param_size=1)
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_ptcfm_buildable(self):
         dataset = PTCFM(param_size=1)
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_ptcfr_buildable(self):
         dataset = PTCFR(param_size=1)
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_ptcmm_buildable(self):
         dataset = PTCMM(param_size=1)
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
 
     def test_smiles_dataset_buildable(self):
@@ -433,6 +432,6 @@ class TestDatasetsBuildable(unittest.TestCase):
         assert "o" in dataset.atom_types
         assert "b_1" in dataset.bond_types
         dataset.add_rules([R.predict <= R.get(dataset.node_embed)(V.X)])
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
         dataset.clear()

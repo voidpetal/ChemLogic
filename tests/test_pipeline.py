@@ -46,7 +46,7 @@ class TestPipeline(unittest.TestCase):
 
     @patch("chemlogic.datasets.datasets.get_dataset")
     @patch("chemlogic.models.models.get_model")
-    @patch("neuralogic.nn.get_evaluator")
+    @patch("chemlogic.utils.Pipeline.ChemTemplate.build")
     def test_train_test_cycle(self, mock_evaluator, mock_model, mock_dataset):
         mock_dataset.return_value = MagicMock(
             node_embed="node",
@@ -71,7 +71,7 @@ class TestPipeline(unittest.TestCase):
         mock_model.return_value = []
 
         mock_eval = MagicMock()
-        mock_eval.build_dataset.return_value.samples = [1, 2, 3, 4]
+        mock_eval.build_dataset.return_value = [1, 2, 3, 4]
         mock_evaluator.return_value = mock_eval
 
         pipeline = Pipeline(**self.default_args)
@@ -83,20 +83,20 @@ class TestPipeline(unittest.TestCase):
 
     def test_train_model_early_stopping(self):
         evaluator = MagicMock()
-        evaluator.train.return_value = iter(
+        evaluator.loss.side_effect = iter(
             [
-                (0.4, 1),
-                (0.35, 1),
-                (0.34, 1),
-                (0.34, 1),
-                (0.34, 1),
-                (0.34, 1),
-                (0.34, 1),
-                (0.34, 1),
-                (0.34, 1),
-                (0.34, 1),
-                (0.34, 1),
-                (0.34, 1),
+                0.4,
+                0.35,
+                0.34,
+                0.34,
+                0.34,
+                0.34,
+                0.34,
+                0.34,
+                0.34,
+                0.34,
+                0.34,
+                0.34,
             ]
         )
         pipeline = Pipeline(**self.default_args)

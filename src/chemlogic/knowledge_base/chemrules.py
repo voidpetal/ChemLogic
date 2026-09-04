@@ -1,4 +1,4 @@
-from neuralogic.core import R, Template, Transformation, V
+from neuralogic.core import Model, R, Transformation, V
 
 from chemlogic.knowledge_base.functional_groups.GeneralFunctionalGroups import (
     GeneralFunctionalGroups,
@@ -74,14 +74,14 @@ def get_chem_rules(
         funnel (bool): Force param_size=1 for scalar interpretable weights.
 
     Returns:
-        neuralogic.core.Template: Template containing rules for the enabled
+        neuralogic.core.Model: Model containing rules for the enabled
             functional group categories. The template defines predicates of
             the form `{layer_name}_<group>` (e.g. `chem_nitro`, `chem_hydroxyl`)
             aggregated into `{layer_name}_chem_rules(X)`, which is wired into
             `output_layer_name`.
     """
 
-    template = Template()
+    template = Model()
     if funnel:
         param_size = 1
 

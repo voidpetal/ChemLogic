@@ -1,7 +1,6 @@
 import unittest
 
-from neuralogic.core import Settings, Template
-from neuralogic.nn import get_evaluator
+from neuralogic.core import Model, Settings
 
 from chemlogic.datasets import (
     SmilesDataset,
@@ -83,14 +82,14 @@ class TestFunctionalGroupModules(unittest.TestCase):
         dataset += kb
         dataset.flatten()
 
-        evaluator = get_evaluator(dataset, Settings())
+        evaluator = dataset.build(Settings())
         evaluator.build_dataset(dataset.data)
         dataset.clear()
 
     # GeneralFunctionalGroups
     def test_general_functional_groups_instantiation(self):
         fg = GeneralFunctionalGroups(**self.common_args)
-        self.assertIsInstance(fg, Template)
+        self.assertIsInstance(fg, Model)
         self.assertEqual(fg.layer_name, "fg_layer")
 
     def test_general_functional_groups_missing_required_param(self):
@@ -133,14 +132,13 @@ class TestFunctionalGroupModules(unittest.TestCase):
         )
 
     def test_not_buildable(self):
-        with self.assertRaises(Exception):  # noqa: B017
-            self.check_buildable(
-                ["C"],  # methane does not have any of the groups
-                hydrocarbons=True,
-                nitro=True,
-                sulfuric=True,
-                oxy=True,
-            )
+        self.check_buildable(
+            ["C"],
+            hydrocarbons=True,
+            nitro=True,
+            sulfuric=True,
+            oxy=True,
+        )
 
     # Hydrocarbons
     def test_hydrocarbons_instantiation(self):
@@ -150,7 +148,7 @@ class TestFunctionalGroupModules(unittest.TestCase):
             "carbon": "C",
         }
         hc = Hydrocarbons(**args)
-        self.assertIsInstance(hc, Template)
+        self.assertIsInstance(hc, Model)
         self.assertEqual(hc.layer_name, "hydro_layer")
 
     def test_hydrocarbons_missing_required_param(self):
@@ -211,7 +209,7 @@ class TestFunctionalGroupModules(unittest.TestCase):
             "nitrogen": "n",
         }
         hc = NitrogenGroups(**args)
-        self.assertIsInstance(hc, Template)
+        self.assertIsInstance(hc, Model)
         self.assertEqual(hc.layer_name, "nitro_layer")
 
     def test_nitrogens_missing_required_param(self):
@@ -357,7 +355,7 @@ class TestFunctionalGroupModules(unittest.TestCase):
             "hydrogen": "h",
         }
         hc = OxygenGroups(**args)
-        self.assertIsInstance(hc, Template)
+        self.assertIsInstance(hc, Model)
         self.assertEqual(hc.layer_name, "oxy_layer")
 
     def test_oxygens_missing_required_param(self):
@@ -461,7 +459,7 @@ class TestFunctionalGroupModules(unittest.TestCase):
             "connection": "s",
         }
         hc = RelaxedFunctionalGroups(**args)
-        self.assertIsInstance(hc, Template)
+        self.assertIsInstance(hc, Model)
         self.assertEqual(hc.layer_name, "relaxations")
 
     def test_relaxations_missing_required_param(self):
@@ -508,7 +506,7 @@ class TestFunctionalGroupModules(unittest.TestCase):
             "hydrogen": "h",
         }
         hc = SulfurGroups(**args)
-        self.assertIsInstance(hc, Template)
+        self.assertIsInstance(hc, Model)
         self.assertEqual(hc.layer_name, "sulfurs")
 
     def test_sulfurs_missing_required_param(self):

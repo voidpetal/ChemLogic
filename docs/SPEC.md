@@ -48,7 +48,7 @@ pipeline = Pipeline(
     param_size=2,
     layers=2,
     smiles_list=["CCO", "CC(=O)O", "c1ccccc1"],
-    labels=[0, 1, 0]
+    labels=[0, 1, 0],
 )
 ```
 
@@ -59,17 +59,19 @@ import pandas as pd
 from chemlogic.datasets import SmilesDataset
 
 # DataFrame with SMILES, target, and additional numeric columns
-df = pd.DataFrame({
-    "smiles": ["CCO", "CC(=O)O", "c1ccccc1"],
-    "target": [0, 1, 0],
-    "mol_weight": [46.07, 60.05, 78.11],  # Graph-level feature
-    "log_p": [-0.18, -0.17, 2.13],         # Graph-level feature
-})
+df = pd.DataFrame(
+    {
+        "smiles": ["CCO", "CC(=O)O", "c1ccccc1"],
+        "target": [0, 1, 0],
+        "mol_weight": [46.07, 60.05, 78.11],  # Graph-level feature
+        "log_p": [-0.18, -0.17, 2.13],  # Graph-level feature
+    }
+)
 
 dataset = SmilesDataset(
     df,
     atom_features=["formal_charge", "degree"],  # Node-level features
-    bond_features=["is_aromatic"],               # Edge-level features
+    bond_features=["is_aromatic"],  # Edge-level features
 )
 ```
 
@@ -121,11 +123,13 @@ Molecule: C-C-O (ethanol)
 **Usage:**
 ```python
 # Via DataFrame - extra numeric columns become graph features
-df = pd.DataFrame({
-    "smiles": ["CCO", "CC"],
-    "target": [1, 0],
-    "mol_weight": [46.07, 30.07],  # Automatically detected as graph feature
-})
+df = pd.DataFrame(
+    {
+        "smiles": ["CCO", "CC"],
+        "target": [1, 0],
+        "mol_weight": [46.07, 30.07],  # Automatically detected as graph feature
+    }
+)
 dataset = SmilesDataset(df)
 
 # Alternative: Broadcast mode (adds graph features to all atoms, no synthetic node)
@@ -186,7 +190,9 @@ RDKit bond properties extracted as valued predicates on each bond.
 **Usage:**
 ```python
 # Enable specific features
-dataset = SmilesDataset(smiles_list, labels, bond_features=["is_aromatic", "is_in_ring"])
+dataset = SmilesDataset(
+    smiles_list, labels, bond_features=["is_aromatic", "is_in_ring"]
+)
 
 # Enable all available features
 dataset = SmilesDataset(smiles_list, labels, bond_features="all")
@@ -207,12 +213,14 @@ from chemlogic.datasets import SmilesDataset
 from chemlogic.models import GNN
 
 # Dataset with all feature levels
-df = pd.DataFrame({
-    "smiles": ["c1ccccc1", "CCO", "CC(=O)O"],
-    "target": [0.5, 1.2, 0.8],
-    "mol_weight": [78.11, 46.07, 60.05],
-    "tpsa": [0.0, 20.23, 37.30],
-})
+df = pd.DataFrame(
+    {
+        "smiles": ["c1ccccc1", "CCO", "CC(=O)O"],
+        "target": [0.5, 1.2, 0.8],
+        "mol_weight": [78.11, 46.07, 60.05],
+        "tpsa": [0.0, 20.23, 37.30],
+    }
+)
 
 dataset = SmilesDataset(
     df,
@@ -220,7 +228,7 @@ dataset = SmilesDataset(
     bond_features=["is_aromatic", "is_in_ring"],
 )
 
-# Template rules created:
+# Model rules created:
 # - atom_embed(A) <= c(A)           # Atom type
 # - atom_embed(A) <= formal_charge(A)  # Atom feature
 # - atom_embed(A) <= is_aromatic(A)    # Atom feature
@@ -401,7 +409,7 @@ pipeline = Pipeline(
 ### Training
 
 ```python
-train_loss, test_loss, metric, evaluator = pipeline.train_test_cycle(
+train_loss, test_loss, metric, model = pipeline.train_test_cycle(
     lr: float = 0.001,
     epochs: int = 100,
     split_ratio: float = 0.75,
@@ -415,7 +423,7 @@ train_loss, test_loss, metric, evaluator = pipeline.train_test_cycle(
 )
 ```
 
-Returns `(train_loss_last_epoch, test_loss, metric_score, evaluator)`. Metric is AUROC for classification/multi-class, R² for regression.
+Returns `(train_loss_last_epoch, test_loss, metric_score, model)`. Metric is AUROC for classification/multi-class and R² for regression. The returned object is the built Neuralogic 0.9 `Model`.
 
 ### Inference
 
@@ -468,7 +476,7 @@ pipeline = Pipeline(
     graph_features={"num_atoms": df["num_atoms"], "logP": df["logP"]},
 )
 
-train_loss, test_loss, r2, evaluator = pipeline.train_test_cycle(epochs=100)
+train_loss, test_loss, r2, model = pipeline.train_test_cycle(epochs=100)
 print(f"R²: {r2:.4f}")
 ```
 
@@ -493,7 +501,7 @@ pipeline = Pipeline(
     num_outputs=3,
 )
 
-train_loss, test_loss, auroc_ovr, evaluator = pipeline.train_test_cycle(epochs=100)
+train_loss, test_loss, auroc_ovr, model = pipeline.train_test_cycle(epochs=100)
 print(f"AUROC (OVR): {auroc_ovr:.4f}")
 ```
 
@@ -539,7 +547,7 @@ from chemlogic.utils.Checkpoint import Checkpoint
 
 # Save
 safetensors_path, json_path = Checkpoint.save(
-    evaluator,
+    model,
     filepath="checkpoints/run1",
     architecture={"model_name": "gnn", ...},  # optional
     training_state={"epoch": 100, "train_loss": 0.42},  # optional
@@ -553,16 +561,16 @@ Checkpoint.exists("checkpoints/run1")  # True if both files present
 data = Checkpoint.load("checkpoints/run1")
 # data keys: weights, weight_names, version, created_at, architecture, training_state, metadata
 
-# Load weights into a pre-built evaluator
-Checkpoint.load_weights_into(evaluator, "checkpoints/run1")
+# Load weights into a pre-built Neuralogic model
+Checkpoint.load_weights_into(model, "checkpoints/run1")
 ```
 
 ### Via Pipeline (high-level)
 
 ```python
 # Save after training
-pipeline.save_checkpoint()                        # auto-path: checkpoints/{dataset_name}/{timestamp}
-pipeline.save_checkpoint("checkpoints/my_run")   # explicit path
+pipeline.save_checkpoint()  # auto-path: checkpoints/{dataset_name}/{timestamp}
+pipeline.save_checkpoint("checkpoints/my_run")  # explicit path
 
 # Load
 pipeline = Pipeline.from_checkpoint("checkpoints/my_run")
