@@ -1,34 +1,24 @@
 """Tests verifying that feature values are actually used during training."""
 
-import os
 import tempfile
 
-import pytest
+import pandas as pd
+from neuralogic.core import Model, R, V
+from neuralogic.core.settings import Settings
+
+from chemlogic.datasets import SmilesDataset
 
 
 class TestFeatureValuesInTraining:
     """Test that valued predicates are used in neural network computation."""
 
-    @pytest.fixture
-    def setup_training_env(self):
-        """Setup for training tests - skip if dependencies not available."""
-        pytest.importorskip("neuralogic")
-        pytest.importorskip("pandas")
-
-    def test_graph_features_affect_predictions(self, setup_training_env):
+    def test_graph_features_affect_predictions(self):
         """Different graph feature values should produce different predictions.
 
         Graph features are represented via a synthetic graph node connected to all
         atoms. The graph node holds graph-level features and participates in GNN
         message-passing, allowing graph features to influence predictions naturally.
         """
-        import pandas as pd
-        from neuralogic.core import R, V, Template
-        from neuralogic.core.settings import Settings
-        from neuralogic.nn import get_evaluator
-
-        from chemlogic.datasets import SmilesDataset
-
         # Two identical molecules but with different mol_weight values
         # If mol_weight is used, predictions should differ
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -44,8 +34,8 @@ class TestFeatureValuesInTraining:
 
             # Build template with dataset rules + a simple aggregation to predict
             # Graph features flow through atom_embed via the synthetic graph node
-            template = Template()
-            for rule in dataset.template:
+            template = Model()
+            for rule in dataset:
                 template.add_rule(rule)
             # Add a model-like rule that aggregates atom embeddings (including graph node)
             template.add_rule(R.predict[1, 8] <= R.atom_embed(V.A))
@@ -53,7 +43,7 @@ class TestFeatureValuesInTraining:
             settings = Settings()
             settings.iso_value_compression = False
 
-            evaluator = get_evaluator(template, settings)
+            evaluator = template.build(settings)
             built = evaluator.build_dataset(dataset.data)
 
             # Get predictions
@@ -73,15 +63,8 @@ class TestFeatureValuesInTraining:
                 f"Predictions should differ significantly. Difference: {abs_diff}"
             )
 
-    def test_atom_features_affect_predictions(self, setup_training_env):
+    def test_atom_features_affect_predictions(self):
         """Different atom feature values should produce different predictions."""
-        import pandas as pd
-        from neuralogic.core import R, V, Template
-        from neuralogic.core.settings import Settings
-        from neuralogic.nn import get_evaluator
-
-        from chemlogic.datasets import SmilesDataset
-
         with tempfile.TemporaryDirectory() as tmpdir:
             # Use degree feature - all atoms have non-zero degree
             # Benzene carbons have degree=3, ethane carbons have degree=4 (with H)
@@ -99,8 +82,8 @@ class TestFeatureValuesInTraining:
             )
 
             # Build template that uses degree
-            template = Template()
-            for rule in dataset.template:
+            template = Model()
+            for rule in dataset:
                 template.add_rule(rule)
             template.add_rule(R.predict[1, 1] <= R.degree_embed(V.A))
             template.add_rule(R.degree_embed(V.A)[8,] <= R.degree(V.A))
@@ -109,7 +92,7 @@ class TestFeatureValuesInTraining:
             settings = Settings()
             settings.iso_value_compression = False
 
-            evaluator = get_evaluator(template, settings)
+            evaluator = template.build(settings)
             built = evaluator.build_dataset(dataset.data)
 
             # Get predictions
@@ -120,15 +103,8 @@ class TestFeatureValuesInTraining:
                 f"Should have 2 predictions, got: {len(predictions)}"
             )
 
-    def test_bond_features_affect_predictions(self, setup_training_env):
+    def test_bond_features_affect_predictions(self):
         """Different bond feature values should produce different predictions."""
-        import pandas as pd
-        from neuralogic.core import R, V, Template
-        from neuralogic.core.settings import Settings
-        from neuralogic.nn import get_evaluator
-
-        from chemlogic.datasets import SmilesDataset
-
         with tempfile.TemporaryDirectory() as tmpdir:
             # Use is_in_ring feature - both molecules have ring bonds (value=1)
             # Benzene has 6 ring bonds, cyclohexane has 6 ring bonds
@@ -146,8 +122,8 @@ class TestFeatureValuesInTraining:
             )
 
             # Build template that uses is_in_ring
-            template = Template()
-            for rule in dataset.template:
+            template = Model()
+            for rule in dataset:
                 template.add_rule(rule)
             template.add_rule(R.predict[1, 1] <= R.ring_embed(V.B))
             template.add_rule(R.ring_embed(V.B)[8,] <= R.is_in_ring(V.B))
@@ -156,7 +132,7 @@ class TestFeatureValuesInTraining:
             settings = Settings()
             settings.iso_value_compression = False
 
-            evaluator = get_evaluator(template, settings)
+            evaluator = template.build(settings)
             built = evaluator.build_dataset(dataset.data)
 
             # Get predictions - both have is_in_ring predicates
@@ -167,19 +143,12 @@ class TestFeatureValuesInTraining:
                 f"Should have 2 predictions, got: {len(predictions)}"
             )
 
-    def test_training_converges_with_features(self, setup_training_env):
+    def test_training_converges_with_features(self):
         """Training with feature values should converge to target.
 
         Graph features are represented via a synthetic graph node that participates
         in GNN message-passing. This tests that training can optimize the network.
         """
-        import pandas as pd
-        from neuralogic.core import R, V, Template
-        from neuralogic.core.settings import Settings
-        from neuralogic.nn import get_evaluator
-
-        from chemlogic.datasets import SmilesDataset
-
         with tempfile.TemporaryDirectory() as tmpdir:
             # Simple case: predict mol_weight-based target
             df = pd.DataFrame(
@@ -194,8 +163,8 @@ class TestFeatureValuesInTraining:
 
             # Build template with dataset rules + a simple aggregation to predict
             # Graph features flow through atom_embed via the synthetic graph node
-            template = Template()
-            for rule in dataset.template:
+            template = Model()
+            for rule in dataset:
                 template.add_rule(rule)
             # Add a model-like rule that aggregates atom embeddings (including graph node)
             template.add_rule(R.predict[1, 8] <= R.atom_embed(V.A))
@@ -203,7 +172,7 @@ class TestFeatureValuesInTraining:
             settings = Settings()
             settings.iso_value_compression = False
 
-            evaluator = get_evaluator(template, settings)
+            evaluator = template.build(settings)
             built = evaluator.build_dataset(dataset.data)
 
             # Initial prediction

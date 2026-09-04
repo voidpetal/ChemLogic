@@ -64,10 +64,10 @@ class CyclePattern(KnowledgeBase):
                 for i in range(cycle_size)
             )
             body.append(
-                R.special.alldiff(f"X{i}" for i in range(cycle_size))
+                R.special.alldiff(*(f"X{i}" for i in range(cycle_size)))
             )  # X0....Xmax are different
             body.append(
-                R.special._in((V.X,) + tuple(f"X{i}" for i in range(1, cycle_size)))
+                R.special._in(V.X, *(f"X{i}" for i in range(1, cycle_size)))
             )  # X and X0 are in the cycle
 
             return [R.get(f"{self.layer_name}_cycle")(V.X, V.X0) <= body]

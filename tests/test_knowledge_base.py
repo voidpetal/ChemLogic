@@ -1,6 +1,6 @@
 import unittest
 
-from neuralogic.core import Template
+from neuralogic.core import Model
 
 from chemlogic.knowledge_base.chemrules import get_chem_rules
 from chemlogic.knowledge_base.KnowledgeBase import KnowledgeBase
@@ -115,22 +115,22 @@ class TestChemRules(unittest.TestCase):
 
     def test_basic_template_creation(self):
         template = get_chem_rules(**self.common_args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_funnel_sets_param_size_to_one(self):
         args = {**self.common_args, "funnel": True}
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_relaxations_adds_key_atoms(self):
         args = {**self.common_args, "relaxations": True, "key_atoms": ["O", "N"]}
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_relaxations_with_default_key_atoms(self):
         args = {**self.common_args, "relaxations": True}
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_with_path_and_relaxations(self):
         args = {
@@ -140,27 +140,27 @@ class TestChemRules(unittest.TestCase):
             "key_atoms": ["O"],
         }
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_with_hydrocarbons_enabled(self):
         args = {**self.common_args, "hydrocarbons": True}
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_with_oxygen_groups_enabled(self):
         args = {**self.common_args, "oxy": True}
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_with_nitrogen_groups_enabled(self):
         args = {**self.common_args, "nitro": True}
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_with_sulfuric_groups_enabled(self):
         args = {**self.common_args, "sulfuric": True}
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_with_all_groups_enabled(self):
         args = {
@@ -174,17 +174,17 @@ class TestChemRules(unittest.TestCase):
             "path": "connected",
         }
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_empty_halogens_and_aromatic_bonds(self):
         args = {**self.common_args, "halogens": [], "aromatic_bonds": []}
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_param_size_one_behavior(self):
         args = {**self.common_args, "param_size": 1}
         template = get_chem_rules(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_missing_optional_arguments(self):
         minimal_args = {
@@ -205,7 +205,7 @@ class TestChemRules(unittest.TestCase):
             "sulfur": "S",
         }
         template = get_chem_rules(**minimal_args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
 
 class TestSubgraphPatterns(unittest.TestCase):
@@ -228,42 +228,42 @@ class TestSubgraphPatterns(unittest.TestCase):
 
     def test_basic_template_creation(self):
         template = get_subgraphs(**self.common_args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_funnel_sets_param_size_to_one(self):
         args = {**self.common_args, "funnel": True}
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_enable_cycles_only(self):
         args = {**self.common_args, "cycles": True}
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_enable_paths_only(self):
         args = {**self.common_args, "paths": True}
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_enable_y_shape_only(self):
         args = {**self.common_args, "y_shape": True}
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_enable_neighborhoods_only(self):
         args = {**self.common_args, "nbhoods": True}
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_enable_circular_only(self):
         args = {**self.common_args, "circular": True}
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_enable_collective_only(self):
         args = {**self.common_args, "collective": True}
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_enable_all_patterns(self):
         args = {
@@ -276,7 +276,7 @@ class TestSubgraphPatterns(unittest.TestCase):
             "collective": True,
         }
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_empty_atom_types_and_bonds(self):
         args = {
@@ -287,12 +287,12 @@ class TestSubgraphPatterns(unittest.TestCase):
             "collective": True,
         }
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_param_size_one_behavior(self):
         args = {**self.common_args, "param_size": 1}
         template = get_subgraphs(**args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)
 
     def test_missing_optional_arguments(self):
         minimal_args = {
@@ -303,4 +303,4 @@ class TestSubgraphPatterns(unittest.TestCase):
             "param_size": 1,
         }
         template = get_subgraphs(**minimal_args)
-        self.assertIsInstance(template, Template)
+        self.assertIsInstance(template, Model)

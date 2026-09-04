@@ -1,10 +1,10 @@
 # ChemLogic
 
-Chemlogic is a **Neurosymbolic GNN** framework designed for interpretable molecular property prediction. It integrates relational logic syntax with graph neural networks to encode functional groups and structural patterns as learnable rules.
+ChemLogic is a **neurosymbolic GNN** framework for interpretable molecular property prediction. It integrates relational logic syntax with graph neural networks to encode functional groups and structural patterns as learnable rules.
 
 Built on [PyNeuraLogic](https://github.com/LukasZahradnik/PyNeuraLogic).
 
-Read the paper: TBD
+Read the paper: [Deep Learning for Molecular Property Prediction with Logical Background Knowledge](https://dl.acm.org/doi/10.1145/3831692)
 
 ## Install
 
@@ -19,7 +19,7 @@ pip install ChemLogic[experiments]
 
 ## Dependencies
 
-ChemLogic requires Python 3.11 and Java >=1.8. For visualization `graphviz` is required.
+ChemLogic requires Python >= 3.11 and Java >=1.8.For visualization `graphviz` is required.
 
 All dependencies are listed in `pyproject.toml`.
 
@@ -38,7 +38,10 @@ train_loss, test_loss, auroc, _ = pipeline.train_test_cycle()
 ```python
 # Custom SMILES — task inferred from labels (floats → regression, {0,1} ints → classification)
 pipeline = Pipeline(
-    "my_assay", "gnn", param_size=8, layers=2,
+    "my_assay",
+    "gnn",
+    param_size=8,
+    layers=2,
     smiles_list=df["SMILES"],
     labels=df["target"],
 )
@@ -48,17 +51,24 @@ train_loss, test_loss, r2, _ = pipeline.train_test_cycle(epochs=200)
 ```python
 # Chemical knowledge base
 pipeline = Pipeline(
-    "mutagen", "sgn", param_size=4, layers=2,
+    "mutagen",
+    "sgn",
+    param_size=4,
+    layers=2,
     chem_rules=True,  # hydroxyl, carbonyl, halogens, nitro, amines, ...
-    subgraphs=True,   # cycles, paths, y-shapes, circular fingerprints, ...
+    subgraphs=True,  # cycles, paths, y-shapes, circular fingerprints, ...
 )
 ```
 
 ```python
 # Atom, bond, and graph-level features
 pipeline = Pipeline(
-    "my_assay", "gnn", param_size=8, layers=2,
-    smiles_list=df["SMILES"], labels=df["target"],
+    "my_assay",
+    "gnn",
+    param_size=8,
+    layers=2,
+    smiles_list=df["SMILES"],
+    labels=df["target"],
     atom_features="all",
     bond_features="all",
     graph_features={"num_atoms": df["num_atoms"], "logP": df["logP"]},
@@ -68,9 +78,14 @@ pipeline = Pipeline(
 ```python
 # Multi-class — integers 0..N-1 are ambiguous, pass task= explicitly
 pipeline = Pipeline(
-    "my_assay", "gnn", param_size=8, layers=2,
-    smiles_list=df["SMILES"], labels=df["activity_class"],
-    task="multi_class", num_outputs=3,
+    "my_assay",
+    "gnn",
+    param_size=8,
+    layers=2,
+    smiles_list=df["SMILES"],
+    labels=df["activity_class"],
+    task="multi_class",
+    num_outputs=3,
 )
 ```
 
@@ -79,7 +94,10 @@ pipeline = Pipeline(
 from chemlogic.utils.Pipeline import ArchitectureType
 
 pipeline = Pipeline(
-    "mutagen", "rgcn", param_size=4, layers=2,
+    "mutagen",
+    "rgcn",
+    param_size=4,
+    layers=2,
     chem_rules=(False, True, False, False, False),  # oxygen groups only
     architecture=ArchitectureType.CCD,
 )

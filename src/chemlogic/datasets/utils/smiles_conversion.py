@@ -1,5 +1,6 @@
 import os
 import re
+from pathlib import Path
 
 import networkx
 import networkx as nx
@@ -255,6 +256,8 @@ def get_dataset_and_mappings(
             every atom, avoiding synthetic node connectivity issues.
     """
     assert len(smiles_list) == len(labels) if labels is not None else True
+    output_location = Path(output_location)
+    output_location.mkdir(parents=True, exist_ok=True)
 
     # Resolve atom_features to list of feature names for predicate generation
     if atom_features == "all":
@@ -321,13 +324,15 @@ def get_dataset_and_mappings(
     dataset.feature_name = "atom"
 
     # dump the dataset to text file
-    queries_fp = f"{output_location}/{file_prefix}_queries.txt"
-    examples_fp = f"{output_location}/{file_prefix}_examples_bad.txt"  # this file does not have the desired structure, it is used to create the correct formating but can be deleted
+    queries_fp = output_location / f"{file_prefix}_queries.txt"
+    examples_fp = (
+        output_location / f"{file_prefix}_examples_bad.txt"
+    )  # this file does not have the desired structure, it is used to create the correct formating but can be deleted
     with open(queries_fp, "w") as q_file, open(examples_fp, "w") as e_file:
         dataset.dump(q_file, e_file)
 
     # update the dataset to have the desired format
-    examples_updated_fp = f"{output_location}/{file_prefix}_examples.txt"
+    examples_updated_fp = output_location / f"{file_prefix}_examples.txt"
     with (
         open(examples_fp) as in_handle,
         open(examples_updated_fp, "w") as out_handle,

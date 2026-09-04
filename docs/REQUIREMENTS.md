@@ -112,7 +112,7 @@ Formal requirements specification. For introduction, see [README](../README.md).
 
 | ID | Requirement | Target |
 |----|-------------|--------|
-| NFR3.1 | Python 3.11+ | Must |
+| NFR3.1 | Python >=3.11 | Must |
 | NFR3.2 | Any OS with Java 1.8+ | Must |
 | NFR3.3 | Installable via pip | Must |
 

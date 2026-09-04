@@ -3,9 +3,8 @@ from enum import Enum
 from pathlib import Path
 
 from neuralogic.core import R, Settings, Transformation, V
-from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy, ErrorFunction
-from neuralogic.optim import Adam, Optimizer
+from neuralogic.nn.optim import Adam, Optimizer
 from sklearn.metrics import r2_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import label_binarize
@@ -360,18 +359,18 @@ class Pipeline:
 
         settings = Settings(
             optimizer=optimizer(lr=train_cfg.lr),
-            epochs=train_cfg.epochs,
             error_function=error_function(),
         )
         # TODO: log instead of print
         print(f"Building dataset in {train_cfg.batches} batches")
-        evaluator = get_evaluator(self.template, settings)
+        evaluator = self.template.build(settings)
         built_dataset = evaluator.build_dataset(
             self.dataset.data, batch_size=train_cfg.batches
         )
 
+        samples = list(built_dataset)
         train_dataset, test_dataset = train_test_split(
-            built_dataset.samples, train_size=train_cfg.split_ratio, random_state=42
+            samples, train_size=train_cfg.split_ratio, random_state=42
         )
         print("Training model")
         train_losses = self._train_model(
@@ -417,8 +416,8 @@ class Pipeline:
         rounds_without_improvement = 0
 
         for epoch in range(epochs):
-            current_total_loss, number_of_samples = next(evaluator.train(train_dataset))
-            train_loss = current_total_loss / number_of_samples
+            evaluator.train(train_dataset)
+            train_loss = evaluator.loss(train_dataset)
             average_losses.append(train_loss)
 
             if train_loss < best_loss - early_stopping_threshold:
@@ -468,12 +467,13 @@ class Pipeline:
         predictions = []
         targets = []
         for sample, y_hat in zip(
-            test_dataset, evaluator.test(test_dataset, generator=False), strict=False
+            test_dataset, evaluator.test(test_dataset), strict=False
         ):
             predictions.append(y_hat)
-            t = sample.java_sample.target
-            raw = getattr(t, "values", None)
-            targets.append(list(raw) if isinstance(raw, (list, tuple)) else t.value)
+            target = getattr(sample, "target", None)
+            if not isinstance(target, (int, float, list, tuple)):
+                target = sample.java_sample.target.value
+            targets.append(target)
 
         metric_score = None
         if self.task == "classification":
@@ -544,12 +544,7 @@ class Pipeline:
         )
 
         predictions = []
-        for _, y_hat in zip(
-            built_dataset.samples,
-            self.evaluator.test(built_dataset, generator=False),
-            strict=False,
-        ):
-            predictions.append(y_hat)
+        predictions.extend(self.evaluator.test(built_dataset))
 
         return predictions
 
@@ -672,10 +667,9 @@ class Pipeline:
         error_function = MSE if pipeline.task == "regression" else CrossEntropy
         settings = Settings(
             optimizer=Adam(lr=0.001),
-            epochs=1,
             error_function=error_function(),
         )
-        pipeline.evaluator = get_evaluator(pipeline.template, settings)
+        pipeline.evaluator = pipeline.template.build(settings)
 
         # Build dataset to initialize the evaluator's internal state
         pipeline.evaluator.build_dataset(pipeline.dataset.data, batch_size=1)

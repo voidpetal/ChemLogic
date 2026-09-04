@@ -67,7 +67,7 @@ def get_subgraphs(
         funnel (bool): Force param_size=1 for scalar interpretable weights.
 
     Returns:
-        neuralogic.core.Template: Template containing subgraph feature extraction rules.
+        neuralogic.core.Model: Model containing subgraph feature extraction rules.
             Produces a `{layer_name}_subgraph_pattern(X)` predicate aggregating all
             enabled pattern types, wired into `output_layer_name`.
     """

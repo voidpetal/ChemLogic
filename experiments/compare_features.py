@@ -11,13 +11,17 @@ This experiment compares:
 Dataset: Melting point prediction (regression task)
 """
 
-import pandas as pd
-import numpy as np
 import neuralogic
+import numpy as np
+import pandas as pd
+from neuralogic.core import Settings, Transformation
+from neuralogic.nn.loss import MSE
+from neuralogic.nn.optim import Adam
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-from chemlogic.utils.Pipeline import Pipeline, ArchitectureType
+from chemlogic.datasets.SmilesDataset import SmilesDataset
+from chemlogic.models.models import get_model
 
 
 def run_experiment(
@@ -50,8 +54,6 @@ def run_experiment(
 
         # Create dataset using Pipeline with DataFrame
         # Pipeline doesn't support DataFrame directly, so we use SmilesDataset
-        from chemlogic.datasets.SmilesDataset import SmilesDataset
-
         dataset = SmilesDataset(
             smiles_list=train_df,
             param_size=param_size,
@@ -61,8 +63,6 @@ def run_experiment(
         )
     else:
         # Create dataset without graph features
-        from chemlogic.datasets.SmilesDataset import SmilesDataset
-
         dataset = SmilesDataset(
             smiles_list=train_smiles,
             labels=train_labels,
@@ -77,9 +77,6 @@ def run_experiment(
 
     # Create template with model
     dataset.create_template()
-
-    from chemlogic.models.models import get_model
-    from neuralogic.core import Transformation
 
     model_rules = get_model(
         "gnn",
@@ -96,26 +93,22 @@ def run_experiment(
     dataset.add_rules(model_rules)
 
     # Training settings
-    from neuralogic.core import Settings
-    from neuralogic.nn import get_evaluator
-    from neuralogic.nn.loss import MSE
-    from neuralogic.optim import Adam
-
     settings = Settings(
         optimizer=Adam(lr=lr),
-        epochs=epochs,
         error_function=MSE(),
     )
 
     # Create evaluator
-    evaluator = get_evaluator(dataset, settings)
+    evaluator = dataset.build(settings)
 
     # Train
     print(f"Training for {epochs} epochs...")
     built_dataset = evaluator.build_dataset(train_data)
 
     train_losses = []
-    for epoch, (loss, _) in enumerate(evaluator.train(built_dataset)):
+    for epoch in range(epochs):
+        evaluator.train(built_dataset)
+        loss = evaluator.loss(built_dataset)
         train_losses.append(loss)
         if epoch % 1000 == 0:
             print(f"  Epoch {epoch}: loss = {loss:.4f}")
@@ -152,7 +145,7 @@ def run_experiment(
 
     # Get predictions using evaluator.test()
     predictions = []
-    for y_hat in evaluator.test(built_test, generator=False):
+    for y_hat in evaluator.test(built_test):
         predictions.append(float(y_hat))
 
     # Calculate metrics

@@ -1,13 +1,13 @@
 [project]
 name = "ChemLogic"
-version = "0.1.3"
+version = "0.2.0"
 description = "ChemLogic is a neurosymbolic framework that integrates relational logic syntax with various graph neural network (GNN) architectures to model chemical knowledge. It encodes functional groups and molecular subgraph patterns into a differentiable, explainable architecture, enabling the construction of interpretable and modular GNN-based models for chemical reasoning."
 authors = [
     {name = "Kai Hodzic", email = "hodzic.e.k@outlook.com"},
 ]
-requires-python = "==3.11.*"
+requires-python = ">=3.11"
 dependencies = [
-    "neuralogic==0.8.0",
+    "neuralogic>=0.9",
     "scikit-learn>=1.6.1",
     "RDKit>=2025.3.2",
     "pysmiles>=2.0.0",
@@ -25,6 +25,9 @@ classifiers = [
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Scientific/Engineering :: Chemistry",
   "Topic :: Scientific/Engineering :: Information Analysis",
