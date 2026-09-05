@@ -56,6 +56,9 @@ class Pipeline:
         bond_features: str | list[str] | None = None,
         graph_features: dict | None = None,
         num_outputs: int = 1,
+        custom_rules=None,
+        custom_input: str | None = None,
+        custom_output: str | None = None,
     ):
         """
         Initialize the test setup by configuring the dataset and model along with optional chemical rules and subgraphs.
@@ -82,6 +85,9 @@ class Pipeline:
             - None: No additional features (default, backward compatible)
             - 'all': Extract all 4 available RDKit bond features
             - list[str]: Extract only specified features (e.g., ['is_aromatic', 'is_conjugated'])
+        :param custom_rules: NeuraLogic rules or Model to add as a knowledge-base feature branch.
+        :param custom_input: Predicate expected by ``custom_rules`` as its input.
+        :param custom_output: Predicate produced by ``custom_rules`` as its output.
         :return: A tuple containing the template and dataset.
         """
 
@@ -201,12 +207,15 @@ class Pipeline:
             output_layer_transformation=transformation,
         )
 
-        if cfg.chem_rules:
-            try:
-                # TODO: create a generator class
-                hydrocarbons, oxy, nitro, sulfuric, relaxations = cfg.chem_rules
-            except Exception:
-                hydrocarbons, oxy, nitro, sulfuric, relaxations = (True,) * 5
+        if cfg.chem_rules or custom_rules is not None:
+            if cfg.chem_rules:
+                try:
+                    # TODO: create a generator class
+                    hydrocarbons, oxy, nitro, sulfuric, relaxations = cfg.chem_rules
+                except Exception:
+                    hydrocarbons, oxy, nitro, sulfuric, relaxations = (True,) * 5
+            else:
+                hydrocarbons, oxy, nitro, sulfuric, relaxations = (False,) * 5
 
             chem_path = (
                 "sub_path"
@@ -245,6 +254,22 @@ class Pipeline:
                 key_atoms=dataset.key_atom_type,
                 funnel=cfg.funnel,
             )
+
+        if custom_rules is not None:
+            if not isinstance(custom_input, str) or not isinstance(custom_output, str):
+                raise TypeError(
+                    "custom_input and custom_output are required when custom_rules is provided."
+                )
+
+            template += custom_rules
+            custom_source = io_layers["chem_input"]
+            custom_target = (
+                "kb_features" if architecture == ArchitectureType.CCE else "predict"
+            )
+            template += [
+                R.get(custom_input)(V.X) <= R.get(custom_source)(V.X),
+                R.get(custom_target)(V.X) <= R.get(custom_output)(V.X),
+            ]
 
         if cfg.subgraphs:
             try:

@@ -105,6 +105,32 @@ pipeline.template.draw()  # requires graphviz
 ```
 
 ```python
+# Custom rules declare their own input/output predicates.
+
+custom_template = [
+    R.custom_feature(V.C)[4,]
+    <= (
+        R.custom_input(V.C),
+        R.c(V.C),
+        R.o(V.O),
+        R.bond(V.C, V.O, V.B),
+        R.b_2(V.B),
+    )
+]
+
+pipeline = Pipeline(
+    "mutagen", "gnn", param_size=4, layers=2,
+    chem_rules=True,
+    subgraphs=False,
+    custom_rules=custom_template,
+    custom_input="custom_input",
+    custom_output="custom_feature",
+)
+```
+
+Custom rules are knowledge-base feature templates.
+
+```python
 # Checkpointing and inference
 pipeline.save_checkpoint("checkpoints/run1")
 
