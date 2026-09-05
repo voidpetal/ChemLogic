@@ -329,6 +329,51 @@ chem_rules = True  # Enable all
 chem_rules = (True, True, False, False, True)
 ```
 
+### Custom Knowledge-Base Rules
+
+Pass a NeuraLogic rule list or `Model` to `Pipeline(custom_rules=...)` and
+declare its boundary predicates with `custom_input` and `custom_output`.
+Pipeline adds adapter rules around the template.
+
+When `custom_rules` is supplied, ChemLogic adds at least the base chemical
+rules. If `chem_rules` is also configured, its optional categories and path
+rules are preserved unchanged.
+
+- Input: `custom_input` is the predicate expected by the custom template. It is mapped from the KB input: `node_embed` in BARE/CCE or `kb_features` in CCD.
+- Output: `custom_output` is the predicate produced by the custom template. It is mapped to `predict` in BARE/CCD or `kb_features` in CCE.
+
+The predicate names are configurable. `custom_input` and `custom_output` are
+argument names only; any valid NeuraLogic predicate names may be supplied.
+
+```python
+from chemlogic.utils.Pipeline import Pipeline
+
+custom_template = [
+    R.custom_feature(V.C)[4,]
+    <= (
+        R.custom_input(V.C),
+        R.c(V.C),
+        R.o(V.O),
+        R.bond(V.C, V.O, V.B),
+        R.b_2(V.B),
+    )
+]
+
+pipeline = Pipeline(
+    "mutagen", "gnn", param_size=4, layers=2,
+    chem_rules=True,
+    subgraphs=False,
+    custom_rules=custom_template,
+    custom_input="custom_input",
+    custom_output="custom_feature",
+)
+```
+
+The runnable comparison is in `examples/custom_rules.py`. It disables the
+nitro category in the built-in KB, defines raw nitro, carbonyl, and halogen
+structures as custom learnable features, and trains baseline and custom
+pipelines for comparison.
+
 ### Subgraph Patterns
 
 | Pattern | Key | Description |

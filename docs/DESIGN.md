@@ -108,6 +108,12 @@ Architectural decisions and rationale. For introduction, see [README](../README.
 2. Define patterns in `create_template()` using relational predicates
 3. Wire into `get_chem_rules()` (`knowledge_base/chemrules.py`)
 
+### Adding Custom Knowledge-Base Features
+
+Custom features are NeuraLogic templates passed through
+`Pipeline(custom_rules=...)`. Their architecture-specific input/output adapters
+are documented in [the API specification](SPEC.md#custom-knowledge-base-rules).
+
 ### Adding a New Subgraph Pattern
 
 1. Create a class extending `KnowledgeBase`
