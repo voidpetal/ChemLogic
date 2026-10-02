@@ -203,13 +203,22 @@ class TestDatasetClasses(unittest.TestCase):
         ER(param_size=1)
 
     def test_mutag(self):
-        MUTAG(param_size=1)
+        dataset = MUTAG(param_size=1)
+        self.assertEqual(dataset.single_bond, "b_1")
+        self.assertEqual(dataset.double_bond, "b_2")
+        self.assertEqual(dataset.triple_bond, "b_3")
+        self.assertEqual(dataset.aromatic_bonds, ["b_7"])
+        self.assertEqual(dataset.bond_types, ["b_1", "b_2", "b_3", "b_4", "b_5", "b_7"])
 
     def test_ptc(self):
         PTC(param_size=1)
 
     def test_ptcfm(self):
-        PTCFM(param_size=1)
+        dataset = PTCFM(param_size=1)
+        self.assertEqual(dataset.single_bond, "b_1")
+        self.assertEqual(dataset.double_bond, "b_2")
+        self.assertEqual(dataset.triple_bond, "b_0")
+        self.assertEqual(dataset.aromatic_bonds, ["b_3"])
 
     def test_ptcfr(self):
         PTCFR(param_size=1)

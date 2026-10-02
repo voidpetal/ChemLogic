@@ -12,7 +12,8 @@ class MUTAG(Dataset):
     used benchmarks in graph classification and ILP.
 
     Atom types: C, O, Br, I, F, H, N, Cl.
-    Bond types: single, double, triple, aromatic, and two additional types.
+    Bond types use this corpus's local encoding: single (b_1), double (b_2),
+    triple (b_3), aromatic (b_7), plus additional types (b_4, b_5).
 
     Note: this variant is loaded from PyNeuraLogic's bundled Mutagenesis
     dataset, which uses explicit hydrogens and a slightly different encoding
@@ -43,7 +44,7 @@ class MUTAG(Dataset):
             "b_2",
             "b_3",
             ["b_1", "b_2", "b_3"],
-            ["b_4", "b_5", "b_6", "b_7"],
+            ["b_7"],
             "c",
             "o",
             "h",

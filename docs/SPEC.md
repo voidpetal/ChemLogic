@@ -83,6 +83,8 @@ Each dataset defines:
 - **Connectivity**: `bond(X, Y, B)` predicate linking atoms X and Y via bond B
 - **Extended features**: Optional atom, bond, and graph-level features as valued predicates
 
+For SMILES datasets, the `b_<id>` suffix preserves RDKit's `BondType` enum value; it is not a compact ordinal or a count of bond categories. Thus `b_1`, `b_2`, and `b_3` are single, double, and triple bonds, while `b_12` is aromatic. IDs `b_4` through `b_11` are RDKit's quadruple, quintuple, hextuple, and fractional bond types. Other RDKit bond types retain their own IDs when present. The current chemical-rule categories classify `b_1`–`b_3` as aliphatic and `b_12` as aromatic; other bond types still retain separate bond embeddings but are not included in those categories.
+
 ---
 
 ## Extended Features

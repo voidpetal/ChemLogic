@@ -28,7 +28,7 @@ class PTCFM(Dataset):
             key_atoms,
             bond_types,
             "b_1",
-            "b_1",
+            "b_2",
             "b_0",
             ["b_0", "b_1", "b_2"],
             ["b_3"],
