@@ -25,9 +25,7 @@ class RelaxedFunctionalGroups(KnowledgeBase):
                 <= (
                     R.get(self.connection)(V.X, V.Y, V.B),
                     R.get(f"{self.layer_name}_aliphatic_bond")(V.B),
-                    R.get(f"{self.layer_name}_bond_message")(V.X, V.Y, V.B)[
-                        self.param_size
-                    ],
+                    R.get(f"{self.layer_name}_bond_message")(V.B)[self.param_size],
                 )
             ]
         )
@@ -44,9 +42,7 @@ class RelaxedFunctionalGroups(KnowledgeBase):
                 <= (
                     R.get(self.connection)(V.X, V.Y, V.B),
                     R.get(f"{self.layer_name}_aromatic_bond")(V.B),
-                    R.get(f"{self.layer_name}_bond_message")(V.X, V.Y, V.B)[
-                        self.param_size
-                    ],
+                    R.get(f"{self.layer_name}_bond_message")(V.B)[self.param_size],
                 )
             ]
         )

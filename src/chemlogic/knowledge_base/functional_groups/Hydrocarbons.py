@@ -38,12 +38,12 @@ class Hydrocarbons(KnowledgeBase):
                     R.get(self.carbon)(V.D),
                     R.get(self.carbon)(V.E),
                     R.get(self.carbon)(V.F),
-                    R.get(f"{self.layer_name}_bond_message")(V.A, V.B, V.B1),
-                    R.get(f"{self.layer_name}_bond_message")(V.B, V.C, V.B2),
-                    R.get(f"{self.layer_name}_bond_message")(V.C, V.D, V.B3),
-                    R.get(f"{self.layer_name}_bond_message")(V.D, V.E, V.B4),
-                    R.get(f"{self.layer_name}_bond_message")(V.E, V.F, V.B5),
-                    R.get(f"{self.layer_name}_bond_message")(V.F, V.A, V.B6),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    R.get(f"{self.layer_name}_bond_message")(V.B3),
+                    R.get(f"{self.layer_name}_bond_message")(V.B4),
+                    R.get(f"{self.layer_name}_bond_message")(V.B5),
+                    R.get(f"{self.layer_name}_bond_message")(V.B6),
                     R.special.alldiff(V.A, V.B, V.C, V.D, V.E, V.F),
                 )
             ]
@@ -57,11 +57,10 @@ class Hydrocarbons(KnowledgeBase):
                     R.get(self.carbon)(V.C1),
                     R.get(self.carbon)(V.C2),
                     R.hidden.get(f"{self.layer_name}_double_bonded")(V.C1, V.C2, V.B),
-                    R.get(f"{self.layer_name}_bond_message")(V.C1, V.C2, V.B),
+                    R.get(f"{self.layer_name}_bond_message")(V.B),
                 )
             ]
         )
-
         self.add_rules(
             [
                 R.get(f"{self.layer_name}_alkyne_bond")(V.C1, V.C2)
@@ -69,11 +68,10 @@ class Hydrocarbons(KnowledgeBase):
                     R.get(self.carbon)(V.C1),
                     R.get(self.carbon)(V.C2),
                     R.hidden.get(f"{self.layer_name}_triple_bonded")(V.C1, V.C2, V.B),
-                    R.get(f"{self.layer_name}_bond_message")(V.C1, V.C2, V.B),
+                    R.get(f"{self.layer_name}_bond_message")(V.B),
                 )
             ]
         )
-
         # Aggregating hydrocarbon groups
         self.add_rules(
             [
@@ -83,7 +81,19 @@ class Hydrocarbons(KnowledgeBase):
         )
         self.add_rules(
             [
+                R.get(f"{self.layer_name}_hydrocarbon_groups")(V.C2)
+                <= R.get(f"{self.layer_name}_alkene_bond")(V.C1, V.C2)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
                 R.get(f"{self.layer_name}_hydrocarbon_groups")(V.C1)
+                <= R.get(f"{self.layer_name}_alkyne_bond")(V.C1, V.C2)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_hydrocarbon_groups")(V.C2)
                 <= R.get(f"{self.layer_name}_alkyne_bond")(V.C1, V.C2)[self.param_size]
             ]
         )
