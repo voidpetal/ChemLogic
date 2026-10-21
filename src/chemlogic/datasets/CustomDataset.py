@@ -14,7 +14,19 @@ class CustomDataset(Dataset):
     `src/chemlogic/data/datasets/`.
     """
 
-    def __init__(self, examples: str, queries: str, param_size: int, dataset_name: str):
+    def __init__(
+        self,
+        examples: str,
+        queries: str,
+        param_size: int,
+        dataset_name: str,
+        bond_types: list[str] | None = None,
+        single_bond: str = "b_1",
+        double_bond: str = "b_2",
+        triple_bond: str = "b_3",
+        aliphatic_bonds: list[str] | None = None,
+        aromatic_bonds: list[str] | None = None,
+    ):
         """Create a CustomDataset.
 
         Args:
@@ -22,13 +34,24 @@ class CustomDataset(Dataset):
             queries (str): Path to the queries file.
             param_size (int): Parameter size for embeddings used by the dataset.
             dataset_name (str): Name of the dataset, used as a file prefix.
+            bond_types (list[str] | None): Encoded bond predicates in the files.
+            single_bond, double_bond, triple_bond (str): Bond-order predicates.
+            aliphatic_bonds, aromatic_bonds (list[str] | None): Bond-role predicates.
         """
         self.examples = examples
         self.queries = queries
 
         atom_types = ["c", "o", "br", "i", "f", "h", "n", "cl", "s"]
         key_atoms = ["o", "s", "n"]
-        bond_types = ["b_1", "b_2", "b_3", "b_4"]
+        bond_types = (
+            ["b_1", "b_2", "b_3", "b_12"] if bond_types is None else bond_types
+        )
+        aliphatic_bonds = (
+            [single_bond, double_bond, triple_bond]
+            if aliphatic_bonds is None
+            else aliphatic_bonds
+        )
+        aromatic_bonds = ["b_12"] if aromatic_bonds is None else aromatic_bonds
 
         super().__init__(
             dataset_name,
@@ -38,11 +61,11 @@ class CustomDataset(Dataset):
             atom_types,
             key_atoms,
             bond_types,
-            "b_1",
-            "b_2",
-            "b_3",
-            ["b_1", "b_2", "b_3"],
-            ["b_4", "b_5", "b_6", "b_7"],
+            single_bond,
+            double_bond,
+            triple_bond,
+            aliphatic_bonds,
+            aromatic_bonds,
             "c",
             "o",
             "h",

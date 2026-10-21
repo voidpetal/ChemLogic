@@ -47,6 +47,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
         predicate_arity=1,
         carrier_variable=None,
         carrier_atom=None,
+        expected_aggregate=None,
+        expected_aggregate_groups=None,
     ):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as output_directory:
             dataset = SmilesDataset(
@@ -94,12 +96,21 @@ class TestFunctionalGroupModules(unittest.TestCase):
                         f"chem_{expected_predicate}({carrier_variable})", str(kb)
                     )
                 expected_groups = expected_groups or [True] * len(smiles)
+                aggregate_groups = (
+                    expected_groups
+                    if expected_aggregate_groups is None
+                    else expected_aggregate_groups
+                )
                 self.assertEqual(len(groundings), len(smiles))
                 variables = (V.X, V.Y)[:predicate_arity]
                 predicate = R.get(f"chem_{expected_predicate}")(*variables)
 
-                for smile, grounding, expected in zip(
-                    smiles, groundings, expected_groups, strict=True
+                for smile, grounding, expected, aggregate_expected in zip(
+                    smiles,
+                    groundings,
+                    expected_groups,
+                    aggregate_groups,
+                    strict=True,
                 ):
                     grounded = grounding.get_atoms(predicate)
                     self.assertEqual(
@@ -121,6 +132,16 @@ class TestFunctionalGroupModules(unittest.TestCase):
                         self.assertTrue(
                             group_ids <= carrier_ids,
                             f"{expected_predicate} is not anchored on {carrier_atom} for {smile}",
+                        )
+
+                    if expected_aggregate is not None:
+                        aggregate = grounding.get_atoms(
+                            R.get(f"chem_{expected_aggregate}")(V.X)
+                        )
+                        self.assertEqual(
+                            bool(aggregate),
+                            aggregate_expected,
+                            f"{expected_aggregate} aggregation mismatch for {smile}",
                         )
         fg = GeneralFunctionalGroups(**self.common_args)
         self.assertIsInstance(fg, Model)
@@ -155,6 +176,10 @@ class TestFunctionalGroupModules(unittest.TestCase):
             ["C=O", "CCO"],  # formaldehyde, ethanol
             expected_predicate="carbonyl_group",
             expected_groups=[True, False],
+            carrier_variable="C",
+            carrier_atom="c",
+            expected_aggregate="general_groups",
+            expected_aggregate_groups=[True, True],
         )
 
     def test_hydroxyl(self):
@@ -164,6 +189,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_groups=[True, False],
             carrier_variable="O",
             carrier_atom="o",
+            expected_aggregate="general_groups",
+            expected_aggregate_groups=[True, True],
         )
 
     def test_halogen(self):
@@ -173,6 +200,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_groups=[True, False],
             carrier_variable="X",
             carrier_atom="f",
+            expected_aggregate="general_groups",
+            expected_aggregate_groups=[True, True],
         )
 
     def test_not_buildable(self):
@@ -233,6 +262,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_groups=[True, False],
             carrier_variable="A",
             carrier_atom="c",
+            expected_aggregate="hydrocarbon_groups",
+            expected_aggregate_groups=[True, False],
         )
 
     def test_alkene(self):
@@ -242,6 +273,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_predicate="alkene_bond",
             expected_groups=[True, False],
             predicate_arity=2,
+            expected_aggregate="hydrocarbon_groups",
+            expected_aggregate_groups=[True, False],
         )
 
     def test_alkyne(self):
@@ -251,6 +284,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_predicate="alkyne_bond",
             expected_groups=[True, False],
             predicate_arity=2,
+            expected_aggregate="hydrocarbon_groups",
+            expected_aggregate_groups=[True, False],
         )
 
     # Nitrogens
@@ -291,6 +326,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
         rules_str = str(hc)
         expected_predicates = [
             "amine",
+            "n_carbonyl",
+            "n_quaternary",
             "amino_group",
             "quat_ammonion",
             "amide",
@@ -312,11 +349,24 @@ class TestFunctionalGroupModules(unittest.TestCase):
 
     def test_amine(self):
         self.check_buildable(
-            ["CN", "CNC", "CN(C)C", "C1CCNCC1", "CCO", "CC(=O)N"],
+            [
+                "CN",
+                "C[NH2]",
+                "CNC",
+                "C[NH]C",
+                "CN(C)C",
+                "C1CCNCC1",
+                "CCO",
+                "CC(=O)N",
+                "C[N+](C)(C)C",
+            ],
             nitro=True,
             expected_predicate="amine",
-            expected_groups=[True, True, True, True, False, False],
+            expected_groups=[True, True, True, True, True, True, False, False, False],
             carrier_variable="N",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, True, True, True, True, False, True, True],
         )
 
     def test_quat_ammonion(self):
@@ -326,6 +376,9 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_predicate="quaternary_ammonium",
             expected_groups=[True, False],
             carrier_variable="N",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True],
         )
 
     def test_amide(self):
@@ -335,6 +388,9 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_predicate="amide",
             expected_groups=[True, False],
             carrier_variable="N",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, False],
         )
 
     def test_imine(self):
@@ -402,11 +458,18 @@ class TestFunctionalGroupModules(unittest.TestCase):
 
     def test_nitro(self):
         self.check_buildable(
-            ["CC[N+](=O)[O-]", "CCO"],  # nitroethane, ethanol
+            [
+                "CC[N+](=O)[O-]",
+                "CC[N+]([O-])=O",
+                "CCO",
+                "CC(=O)N",
+            ],
             nitro=True,
             expected_predicate="nitro",
-            expected_groups=[True, False],
+            expected_groups=[True, True, False, False],
             carrier_variable="C",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, False, True],
         )
 
     def test_nitrate(self):
@@ -566,6 +629,9 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_predicate="ether",
             expected_groups=[True, False, False],
             carrier_variable="O",
+            expected_aggregate="oxy_groups",
+            carrier_atom="o",
+            expected_aggregate_groups=[True, True, True],
         )
 
     # Relaxations
@@ -710,4 +776,5 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_groups=[True, False],
             carrier_variable="S",
             carrier_atom="s",
+            expected_aggregate="sulfuric_groups",
         )

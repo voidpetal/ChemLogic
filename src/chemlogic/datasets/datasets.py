@@ -87,6 +87,12 @@ def get_dataset(
     bond_features: str | list[str] | None = None,
     graph_features: dict | None = None,
     num_outputs: int = 1,
+    bond_types: list[str] | None = None,
+    single_bond: str | None = None,
+    double_bond: str | None = None,
+    triple_bond: str | None = None,
+    aliphatic_bonds: list[str] | None = None,
+    aromatic_bonds: list[str] | None = None,
 ):
     """
     Instantiates a dataset class based on its name.
@@ -106,6 +112,9 @@ def get_dataset(
             - None: No additional features (default, backward compatible)
             - 'all': Extract all 4 available RDKit bond features
             - list[str]: Extract only specified features (e.g., ['is_aromatic', 'is_conjugated'])
+        bond_types (list[str] | None): Encoded bond predicates for custom example files.
+        single_bond, double_bond, triple_bond (str | None): Custom bond-order predicates.
+        aliphatic_bonds, aromatic_bonds (list[str] | None): Custom bond-role predicates.
     Returns:
         An instance of the dataset class.
 
@@ -128,7 +137,18 @@ def get_dataset(
 
     # Custom dataset with custom examples/queries files, or from custom datasets
     if (examples and queries) or dataset_name in CUSTOM_DATASETS:
-        return CustomDataset(examples, queries, param_size, dataset_name)
+        return CustomDataset(
+            examples,
+            queries,
+            param_size,
+            dataset_name,
+            bond_types=bond_types,
+            single_bond=single_bond or "b_1",
+            double_bond=double_bond or "b_2",
+            triple_bond=triple_bond or "b_3",
+            aliphatic_bonds=aliphatic_bonds,
+            aromatic_bonds=aromatic_bonds,
+        )
 
     dataset_class = DATASET_CLASSES.get(dataset_name)
     if dataset_class is None:

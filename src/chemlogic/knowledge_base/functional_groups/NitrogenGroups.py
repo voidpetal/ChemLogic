@@ -15,6 +15,19 @@ class NitrogenGroups(KnowledgeBase):
                 )
             ]
         )
+        self.add_rules(
+            [
+                R.hidden.get(f"{self.layer_name}_n_quaternary")(V.N)
+                <= (
+                    R.get(self.nitrogen)(V.N),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.N, V.R1),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.N, V.R2),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.N, V.R3),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.N, V.R4),
+                    R.special.alldiff(V.N, V.R1, V.R2, V.R3, V.R4),
+                )
+            ]
+        )
 
         # Defining amine group (R1-C-N(-R2)-R3)
         # TODO: this won't work for datasets with implicit hydrogens (primary, secondary amines)
@@ -24,6 +37,7 @@ class NitrogenGroups(KnowledgeBase):
                 <= (
                     R.get(f"{self.layer_name}_amino_group")(V.N, V.C, V.R1, V.R2),
                     ~R.hidden.get(f"{self.layer_name}_n_carbonyl")(V.N),
+                    ~R.hidden.get(f"{self.layer_name}_n_quaternary")(V.N),
                 )
             ]
         )

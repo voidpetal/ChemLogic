@@ -85,6 +85,25 @@ Each dataset defines:
 
 For SMILES datasets, the `b_<id>` suffix preserves RDKit's `BondType` enum value; it is not a compact ordinal or a count of bond categories. Thus `b_1`, `b_2`, and `b_3` are single, double, and triple bonds, while `b_12` is aromatic. IDs `b_4` through `b_11` are RDKit's quadruple, quintuple, hextuple, and fractional bond types. Other RDKit bond types retain their own IDs when present. The current chemical-rule categories classify `b_1`–`b_3` as aliphatic and `b_12` as aromatic; other bond types still retain separate bond embeddings but are not included in those categories.
 
+Pre-encoded custom files may use a dataset-specific bond vocabulary. Pass its mapping to `get_dataset`. Dataset construction uses this mapping for embeddings and chemical rules; repository tests compare it with the encoded bond predicates:
+
+```python
+dataset = get_dataset(
+    "custom",
+    param_size=4,
+    examples="examples.txt",
+    queries="queries.txt",
+    bond_types=["b_single", "b_double", "b_triple", "b_aromatic"],
+    single_bond="b_single",
+    double_bond="b_double",
+    triple_bond="b_triple",
+    aliphatic_bonds=["b_single", "b_double", "b_triple"],
+    aromatic_bonds=["b_aromatic"],
+)
+```
+
+Legacy datasets retain their source-specific mappings; their `b_n` names must not be interpreted as RDKit enum IDs.
+
 ---
 
 ## Extended Features
