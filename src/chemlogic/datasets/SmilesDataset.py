@@ -128,7 +128,8 @@ class SmilesDataset(Dataset):
             "b_2",
             "b_3",
             ["b_1", "b_2", "b_3"],
-            ["b_4"],
+            # Bond predicate suffixes mirror RDKit BondType enum IDs; aromatic is 12.
+            ["b_12"],
             "c",
             "o",
             "h",
@@ -160,7 +161,9 @@ class SmilesDataset(Dataset):
             num_outputs=self.num_outputs,
         )
         self.atom_types = atom_types
-        self.bond_types = bond_types
+        self.bond_types = list(
+            dict.fromkeys([*bond_types, *self.aliphatic_bonds, *self.aromatic_bonds])
+        )
         # Store feature names for template creation
         self.atom_feature_names = atom_feature_names
         self.bond_feature_names = bond_feature_names

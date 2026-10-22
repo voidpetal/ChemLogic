@@ -8,7 +8,9 @@ class KnowledgeBase(Template):
 
     Validates required configuration keys and exposes the shared fields
     (bond predicates, atom predicates, cycle/depth bounds) consumed by all
-    knowledge-base subclasses.
+    knowledge-base subclasses. Functional-group category contributions use
+    unary predicates anchored at a characteristic atom; higher-arity predicates
+    describe the full matched pattern and should project to those unary anchors.
     """
 
     required_keys = ["param_size", "layer_name"]

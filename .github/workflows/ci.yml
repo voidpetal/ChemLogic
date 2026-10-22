@@ -77,7 +77,7 @@ jobs:
           python-version: '3.11'
           cache: pip
       - name: Install PDM
-        run: pip install pdm
+        run: python -m pip install --upgrade "setuptools>=83.0.0" pdm
       - name: Cache PDM venv
         uses: actions/cache@v6
         with:
@@ -86,6 +86,4 @@ jobs:
       - name: Install dependencies
         run: pdm install --dev
       - name: Run pip-audit
-        run: |
-          pip install pip-audit
-          pip-audit --progress-spinner=off
+        run: pdm run pip-audit --progress-spinner=off

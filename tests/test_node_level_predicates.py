@@ -1,9 +1,6 @@
 """Tests for node-level (atom) predicate generation in smiles_conversion."""
 
-import os
 import tempfile
-
-import pytest
 
 from chemlogic.datasets.utils.smiles_conversion import (
     ATOM_FEATURE_MAP,

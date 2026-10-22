@@ -147,13 +147,16 @@ git clone https://github.com/erhc/ChemLogic.git
 cd ChemLogic
 ```
 
-- Make sure to have [`PDM`](https://pdm-project.org/latest/) and [`Make`](https://www.gnu.org/software/make/) installed.
+- Make sure to have [`PDM`](https://pdm-project.org/latest/) installed.
 
 - Create and activate the environment:
 
 ```bash
-make develop
+pdm install --dev
+git config --local core.hooksPath .githooks
 ```
+
+The pre-commit hook runs formatting and auto-fixing lint. If it changes tracked files, it stops the commit so you can review and stage the fixes before retrying. Tests and package builds do not run automatically on push; run `pdm prepare` manually when you want the full preparation workflow.
 
 To develop new features
 
@@ -178,7 +181,7 @@ git push origin feature/your-feature-name
 - Ensure your code passes all tests and follows the style guide.
 
 ```bash
-make prepare
+pdm prepare
 ```
 
 ### Improving The Documentation

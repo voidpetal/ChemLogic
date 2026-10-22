@@ -21,7 +21,7 @@ class TestFeatureValuesInTraining:
         """
         # Two identical molecules but with different mol_weight values
         # If mol_weight is used, predictions should differ
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             df = pd.DataFrame(
                 {
                     "smiles": ["C", "C"],  # Same molecule
@@ -65,7 +65,7 @@ class TestFeatureValuesInTraining:
 
     def test_atom_features_affect_predictions(self):
         """Different atom feature values should produce different predictions."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             # Use degree feature - all atoms have non-zero degree
             # Benzene carbons have degree=3, ethane carbons have degree=4 (with H)
             df = pd.DataFrame(
@@ -105,7 +105,7 @@ class TestFeatureValuesInTraining:
 
     def test_bond_features_affect_predictions(self):
         """Different bond feature values should produce different predictions."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             # Use is_in_ring feature - both molecules have ring bonds (value=1)
             # Benzene has 6 ring bonds, cyclohexane has 6 ring bonds
             df = pd.DataFrame(
@@ -149,7 +149,7 @@ class TestFeatureValuesInTraining:
         Graph features are represented via a synthetic graph node that participates
         in GNN message-passing. This tests that training can optimize the network.
         """
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             # Simple case: predict mol_weight-based target
             df = pd.DataFrame(
                 {

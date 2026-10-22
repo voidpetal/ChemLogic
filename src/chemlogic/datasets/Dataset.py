@@ -128,6 +128,13 @@ class Dataset(Template):
         self.triple_bond = triple_bond
         self.aliphatic_bonds = aliphatic_bonds
         self.aromatic_bonds = aromatic_bonds
+        self.bond_roles = {
+            "single": (single_bond,),
+            "double": (double_bond,),
+            "triple": (triple_bond,),
+            "aliphatic": tuple(aliphatic_bonds),
+            "aromatic": tuple(aromatic_bonds),
+        }
         self.carbon = carbon
         self.oxygen = oxygen
         self.hydrogen = hydrogen

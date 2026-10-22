@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+before=$(mktemp)
+after=$(mktemp)
+trap 'rm -f "$before" "$after"' 0 HUP INT TERM
+
+git diff --binary > "$before"
+
+status=0
+if pdm run check; then
+    status=0
+else
+    status=$?
+fi
+
+git diff --binary > "$after"
+if ! cmp -s "$before" "$after"; then
+    echo "Formatting or linting changed tracked files. Review and stage the fixes, then retry the commit." >&2
+    exit 1
+fi
+
+exit "$status"

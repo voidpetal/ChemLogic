@@ -1,7 +1,7 @@
 """Tests for SmilesDataset DataFrame support (Phase 1, Task 1)."""
 
-import pytest
 import pandas as pd
+import pytest
 
 
 class TestSmilesDatasetDataFrameSupport:

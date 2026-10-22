@@ -17,8 +17,8 @@ class TestAtomFeatureExtraction:
     def test_atom_features_all(self):
         """atom_features='all' should extract all available features."""
         from chemlogic.datasets.utils.smiles_conversion import (
-            smiles_to_pyg,
             ATOM_FEATURE_MAP,
+            smiles_to_pyg,
         )
 
         g = smiles_to_pyg("CCO", atom_features="all")

@@ -1,6 +1,7 @@
+import tempfile
 import unittest
 
-from neuralogic.core import Model, Settings
+from neuralogic.core import Model, R, Settings, V
 
 from chemlogic.datasets import (
     SmilesDataset,
@@ -41,53 +42,105 @@ class TestFunctionalGroupModules(unittest.TestCase):
         sulfuric=False,
         oxy=False,
         relaxations=False,
+        expected_predicate=None,
+        expected_groups=None,
+        predicate_arity=1,
+        carrier_variable=None,
+        carrier_atom=None,
+        expected_aggregate=None,
+        expected_aggregate_groups=None,
     ):
-        # Define Dataset
-        dataset = SmilesDataset(
-            smiles_list=smiles,
-            labels=[
+        with tempfile.TemporaryDirectory(
+            ignore_cleanup_errors=True
+        ) as output_directory:
+            dataset = SmilesDataset(
+                smiles_list=smiles,
+                labels=[1] * len(smiles),
+                param_size=1,
+                dataset_name="test_functional_group_grounding",
+                output_directory=output_directory,
+            )
+
+            kb = get_chem_rules(
+                "chem",
+                dataset.node_embed,
+                dataset.edge_embed,
+                dataset.connection,
                 1,
-            ]
-            * len(smiles),
-            param_size=1,
-            dataset_name=f"test_{str(smiles[0])}",
-        )
+                dataset.halogens,
+                output_layer_name="predict",
+                single_bond=dataset.single_bond,
+                double_bond=dataset.double_bond,
+                triple_bond=dataset.triple_bond,
+                aromatic_bonds=dataset.aromatic_bonds,
+                carbon=dataset.carbon,
+                hydrogen=dataset.hydrogen,
+                oxygen=dataset.oxygen,
+                nitrogen=dataset.nitrogen,
+                sulfur=dataset.sulfur,
+                key_atoms=dataset.key_atom_type,
+                hydrocarbons=hydrocarbons,
+                nitro=nitro,
+                sulfuric=sulfuric,
+                oxy=oxy,
+                relaxations=relaxations,
+            )
+            dataset += kb
+            dataset.flatten()
 
-        # Define the knowledge base
-        kb = get_chem_rules(
-            "chem",
-            dataset.node_embed,
-            dataset.edge_embed,
-            dataset.connection,
-            1,
-            dataset.halogens,
-            output_layer_name="predict",
-            single_bond=dataset.single_bond,
-            double_bond=dataset.double_bond,
-            triple_bond=dataset.triple_bond,
-            aromatic_bonds=dataset.aromatic_bonds,
-            carbon=dataset.carbon,
-            hydrogen=dataset.hydrogen,
-            oxygen=dataset.oxygen,
-            nitrogen=dataset.nitrogen,
-            sulfur=dataset.sulfur,
-            key_atoms=dataset.key_atom_type,
-            hydrocarbons=hydrocarbons,
-            nitro=nitro,
-            sulfuric=sulfuric,
-            oxy=oxy,
-            relaxations=relaxations,
-        )
+            evaluator = dataset.build(Settings())
+            groundings = evaluator.ground(dataset.data)
+            dataset.clear()
 
-        dataset += kb
-        dataset.flatten()
+            if expected_predicate is not None:
+                if carrier_variable is not None:
+                    self.assertIn(
+                        f"chem_{expected_predicate}({carrier_variable})", str(kb)
+                    )
+                expected_groups = expected_groups or [True] * len(smiles)
+                aggregate_groups = (
+                    expected_groups
+                    if expected_aggregate_groups is None
+                    else expected_aggregate_groups
+                )
+                self.assertEqual(len(groundings), len(smiles))
+                variables = (V.X, V.Y)[:predicate_arity]
+                predicate = R.get(f"chem_{expected_predicate}")(*variables)
 
-        evaluator = dataset.build(Settings())
-        evaluator.build_dataset(dataset.data)
-        dataset.clear()
+                for smile, grounding, expected, aggregate_expected in zip(
+                    smiles,
+                    groundings,
+                    expected_groups,
+                    aggregate_groups,
+                    strict=True,
+                ):
+                    grounded = grounding.get_atoms(predicate)
+                    self.assertEqual(
+                        bool(grounded),
+                        expected,
+                        f"{expected_predicate} grounding mismatch for {smile}",
+                    )
 
-    # GeneralFunctionalGroups
-    def test_general_functional_groups_instantiation(self):
+                    if expected and carrier_atom is not None:
+                        group_ids = {atom.substitutions["X"] for atom in grounded}
+                        carrier_facts = grounding.get_atoms(R.get(carrier_atom)(V.X))
+                        carrier_ids = {
+                            atom.substitutions["X"] for atom in carrier_facts
+                        }
+                        self.assertTrue(
+                            group_ids <= carrier_ids,
+                            f"{expected_predicate} is not anchored on {carrier_atom} for {smile}",
+                        )
+
+                    if expected_aggregate is not None:
+                        aggregate = grounding.get_atoms(
+                            R.get(f"chem_{expected_aggregate}")(V.X)
+                        )
+                        self.assertEqual(
+                            bool(aggregate),
+                            aggregate_expected,
+                            f"{expected_aggregate} aggregation mismatch for {smile}",
+                        )
         fg = GeneralFunctionalGroups(**self.common_args)
         self.assertIsInstance(fg, Model)
         self.assertEqual(fg.layer_name, "fg_layer")
@@ -118,26 +171,46 @@ class TestFunctionalGroupModules(unittest.TestCase):
 
     def test_carboxyl(self):
         self.check_buildable(
-            ["C=O"],  # formaldehyde
+            ["C=O", "CCO"],  # formaldehyde, ethanol
+            expected_predicate="carbonyl_group",
+            expected_groups=[True, False],
+            carrier_variable="C",
+            carrier_atom="c",
+            expected_aggregate="general_groups",
+            expected_aggregate_groups=[True, True],
         )
 
     def test_hydroxyl(self):
         self.check_buildable(
-            ["C-O"],  # methanol
+            ["C-O", "C=O"],  # methanol, formaldehyde
+            expected_predicate="hydroxyl",
+            expected_groups=[True, False],
+            carrier_variable="O",
+            carrier_atom="o",
+            expected_aggregate="general_groups",
+            expected_aggregate_groups=[True, True],
         )
 
     def test_halogen(self):
         self.check_buildable(
-            ["CF"],  # fluormethane
+            ["CF", "C=O"],  # fluormethane, formaldehyde
+            expected_predicate="halogen_group",
+            expected_groups=[True, False],
+            carrier_variable="X",
+            carrier_atom="f",
+            expected_aggregate="general_groups",
+            expected_aggregate_groups=[True, True],
         )
 
     def test_not_buildable(self):
         self.check_buildable(
-            ["C"],
+            ["C=O"],
             hydrocarbons=True,
             nitro=True,
             sulfuric=True,
             oxy=True,
+            expected_predicate="hydrocarbon_groups",
+            expected_groups=[False],
         )
 
     # Hydrocarbons
@@ -180,23 +253,37 @@ class TestFunctionalGroupModules(unittest.TestCase):
             self.assertIn(f"hydro_layer_{name}", rules_str)
 
     def test_benzene(self):
-        # TODO: benzene gets converted to nonaromatic, no support for aromatic bonds from smiles
-        # self.check_buildable(
-        #     ["c1ccccc1"], # benzene
-        #     hydrocarbons=True
-        #     )
-        assert True
+        self.check_buildable(
+            ["c1ccccc1", "C1CCCCC1C=O"],  # benzene, cyclohexanecarbaldehyde
+            hydrocarbons=True,
+            expected_predicate="benzene_ring",
+            expected_groups=[True, False],
+            carrier_variable="A",
+            carrier_atom="c",
+            expected_aggregate="hydrocarbon_groups",
+            expected_aggregate_groups=[True, False],
+        )
 
     def test_alkene(self):
         self.check_buildable(
-            ["C=C"],  # ethene
+            ["C=C", "CCO"],  # ethene, ethanol
             hydrocarbons=True,
+            expected_predicate="alkene_bond",
+            expected_groups=[True, False],
+            predicate_arity=2,
+            expected_aggregate="hydrocarbon_groups",
+            expected_aggregate_groups=[True, False],
         )
 
     def test_alkyne(self):
         self.check_buildable(
-            ["C#C"],  # acetylene
+            ["C#C", "CCO"],  # acetylene, ethanol
             hydrocarbons=True,
+            expected_predicate="alkyne_bond",
+            expected_groups=[True, False],
+            predicate_arity=2,
+            expected_aggregate="hydrocarbon_groups",
+            expected_aggregate_groups=[True, False],
         )
 
     # Nitrogens
@@ -237,6 +324,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
         rules_str = str(hc)
         expected_predicates = [
             "amine",
+            "n_carbonyl",
+            "n_quaternary",
             "amino_group",
             "quat_ammonion",
             "amide",
@@ -259,90 +348,163 @@ class TestFunctionalGroupModules(unittest.TestCase):
     def test_amine(self):
         self.check_buildable(
             [
-                "CN",  # methylamine
-                "CNC",  # dimethylamine
-                "CN(C)C",  # trimethylamine
-                "C1CCNCC1",  # piperine
+                "CN",
+                "C[NH2]",
+                "CNC",
+                "C[NH]C",
+                "CN(C)C",
+                "C1CCNCC1",
+                "CCO",
+                "CC(=O)N",
+                "C[N+](C)(C)C",
             ],
             nitro=True,
+            expected_predicate="amine",
+            expected_groups=[True, True, True, True, True, True, False, False, False],
+            carrier_variable="N",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+                False,
+                True,
+                True,
+            ],
         )
 
     def test_quat_ammonion(self):
         self.check_buildable(
-            ["C[N+](C)(C)C"],  # tetramethylammonium
+            ["C[N+](C)(C)C", "CN"],  # tetramethylammonium, methylamine
             nitro=True,
+            expected_predicate="quaternary_ammonium",
+            expected_groups=[True, False],
+            carrier_variable="N",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True],
         )
 
     def test_amide(self):
         self.check_buildable(
-            ["CC(=O)N"],  # acetamide
+            ["CC(=O)N", "CCO"],  # acetamide, ethanol
             nitro=True,
+            expected_predicate="amide",
+            expected_groups=[True, False],
+            carrier_variable="N",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, False],
         )
 
     def test_imine(self):
         self.check_buildable(
-            ["C=NC"],  # ethanimine
+            ["C=NC", "CCO"],  # ethanimine, ethanol
             nitro=True,
+            expected_predicate="imine",
+            expected_groups=[True, False],
+            carrier_variable="N",
         )
 
     def test_imide(self):
         self.check_buildable(
-            ["O=C1CCC(=O)NC1=O"],  # succinimide
+            ["O=C1CCC(=O)NC1=O", "CC(=O)O"],  # succinimide, acetic acid
             nitro=True,
+            expected_predicate="imide",
+            expected_groups=[True, False],
+            carrier_variable="N",
         )
 
     def test_azide(self):
         self.check_buildable(
-            ["CN=[N+]=[N-]"],  # methyl azide
+            ["CN=[N+]=[N-]", "CCO"],  # methyl azide, ethanol
             nitro=True,
+            expected_predicate="azide",
+            expected_groups=[True, False],
+            carrier_variable="N1",
         )
 
     def test_azo(self):
         self.check_buildable(
-            ["CCN=NC"],  # dimethylazoethane
+            ["CCN=NC", "CCO"],  # dimethylazoethane, ethanol
             nitro=True,
+            expected_predicate="azo",
+            expected_groups=[True, False],
+            predicate_arity=2,
         )
 
     def test_cyanate(self):
         self.check_buildable(
-            ["CCOCN"],  # ethyl cyanate (approximate)
+            ["CCOC#N", "CCO"],  # ethyl cyanate, ethanol
             nitro=True,
+            expected_predicate="cyanate",
+            expected_groups=[True, False],
+            carrier_variable="C",
         )
 
     def test_isocyanate(self):
         self.check_buildable(
-            ["CN=C=O"],  # methyl isocyanate
+            ["CN=C=O", "CCO"],  # methyl isocyanate, ethanol
             nitro=True,
+            expected_predicate="isocyanate",
+            expected_groups=[True, False],
+            carrier_variable="C",
         )
 
     def test_nitro_group(self):
         self.check_buildable(
-            ["CC(N(O)O)C"],  # nitropropane
+            ["CC[N+](=O)[O-]", "CCO"],  # nitroethane, ethanol
             nitro=True,
+            expected_predicate="nitro_group",
+            expected_groups=[True, False],
+            carrier_variable="N",
         )
 
     def test_nitro(self):
         self.check_buildable(
-            ["C1=CC=C(C=C1)NO"],  # nitrobenzene
+            [
+                "CC[N+](=O)[O-]",
+                "CC[N+]([O-])=O",
+                "CCO",
+                "CC(=O)N",
+            ],
             nitro=True,
+            expected_predicate="nitro",
+            expected_groups=[True, True, False, False],
+            carrier_variable="C",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, False, True],
         )
 
     def test_nitrate(self):
         self.check_buildable(
-            ["CONO"],  # methyl nitrate
+            ["CO[N+](=O)[O-]", "CCO"],  # methyl nitrate, ethanol
             nitro=True,
+            expected_predicate="nitrate",
+            expected_groups=[True, False],
+            carrier_variable="N",
         )
 
     def test_carbamate(self):
         self.check_buildable(
-            ["COC(=O)N"],  # methyl carbamate
+            ["COC(=O)N", "CC(=O)N"],  # methyl carbamate, acetamide
             nitro=True,
+            expected_predicate="carbamate",
+            expected_groups=[True, False],
+            carrier_variable="N",
         )
 
     def test_aziridine(self):
         self.check_buildable(
-            ["C1CN1"],  # aziridine
+            ["C1CN1", "C=NC"],  # aziridine, ethanimine
             nitro=True,
+            expected_predicate="aziridine",
+            expected_groups=[True, False],
+            carrier_variable="N",
         )
 
     # Oxygens
@@ -398,56 +560,86 @@ class TestFunctionalGroupModules(unittest.TestCase):
 
     def test_alcoholic(self):
         self.check_buildable(
-            ["CCO"],  # ethanol
+            ["CCO", "CC(=O)C"],  # ethanol, acetone
             oxy=True,
+            expected_predicate="alcoholic",
+            expected_groups=[True, False],
+            carrier_variable="O",
         )
 
     def test_ketone(self):
         self.check_buildable(
-            ["CC(=O)C"],  # acetone
+            ["CC(=O)C", "CC=O"],  # acetone, acetaldehyde
             oxy=True,
+            expected_predicate="ketone",
+            expected_groups=[True, False],
+            carrier_variable="C",
         )
 
     def test_aldehyde(self):
         self.check_buildable(
-            ["CC=O"],  # acetaldehyde
+            ["CC=O", "CC(=O)C"],  # acetaldehyde, acetone
             oxy=True,
+            expected_predicate="aldehyde",
+            expected_groups=[True, False],
+            carrier_variable="C",
         )
 
     def test_acyl_halide(self):
         self.check_buildable(
-            ["CC(=O)Cl"],  # acetyl chloride
+            ["CC(=O)Cl", "CC(=O)C"],  # acetyl chloride, acetone
             oxy=True,
+            expected_predicate="acyl_halide",
+            expected_groups=[True, False],
+            carrier_variable="C",
         )
 
     def test_carboxylic_acid(self):
         self.check_buildable(
-            ["CC(=O)O"],  # acetic acid
+            ["CC(=O)O", "CC(=O)C"],  # acetic acid, acetone
             oxy=True,
+            expected_predicate="carboxylic_acid",
+            expected_groups=[True, False],
+            carrier_variable="C",
         )
 
     def test_carboxylic_acid_anhydride(self):
         self.check_buildable(
-            ["CC(=O)OC(=O)C"],  # acetic anhydride
+            ["CC(=O)OC(=O)C", "CC(=O)O"],  # acetic anhydride, acetic acid
             oxy=True,
+            expected_predicate="carboxylic_acid_anhydride",
+            expected_groups=[True, False],
+            predicate_arity=2,
         )
 
     def test_ester(self):
         self.check_buildable(
-            ["CC(=O)OC"],  # methyl acetate
+            ["CC(=O)OC", "CC(=O)O"],  # methyl acetate, acetic acid
             oxy=True,
+            expected_predicate="ester",
+            expected_groups=[True, False],
+            carrier_variable="C",
         )
 
     def test_carbonate_ester(self):
         self.check_buildable(
-            ["COC(=O)OC"],  # dimethyl carbonate
+            ["COC(=O)OC", "CC(=O)OC"],  # dimethyl carbonate, methyl acetate
             oxy=True,
+            expected_predicate="carbonate_ester",
+            expected_groups=[True, False],
+            carrier_variable="C",
         )
 
     def test_ether(self):
         self.check_buildable(
-            ["COC"],  # dimethyl ether
+            ["COC", "CCO", "CC(=O)OC"],  # ether, alcohol, ester
             oxy=True,
+            expected_predicate="ether",
+            expected_groups=[True, False, False],
+            carrier_variable="O",
+            expected_aggregate="oxy_groups",
+            carrier_atom="o",
+            expected_aggregate_groups=[True, True, True],
         )
 
     # Relaxations
@@ -547,30 +739,50 @@ class TestFunctionalGroupModules(unittest.TestCase):
 
     def test_thiocyanate(self):
         self.check_buildable(
-            ["CSC#N"],  # methyl thiocyanate
+            ["CSC#N", "CCO"],  # methyl thiocyanate, ethanol
             sulfuric=True,
+            expected_predicate="thiocyanate",
+            expected_groups=[True, False],
+            carrier_variable="C",
+            carrier_atom="c",
         )
 
     def test_isothiocyanate(self):
         self.check_buildable(
-            ["CN=C=S"],  # methyl isothiocyanate
+            ["CN=C=S", "CCO"],  # methyl isothiocyanate, ethanol
             sulfuric=True,
+            expected_predicate="isothiocyanate",
+            expected_groups=[True, False],
+            carrier_variable="C",
+            carrier_atom="c",
         )
 
     def test_sulfide(self):
         self.check_buildable(
-            ["CSC"],  # dimethyl sulfide
+            ["CSC", "CCO"],  # dimethyl sulfide, ethanol
             sulfuric=True,
+            expected_predicate="sulfide",
+            expected_groups=[True, False],
+            carrier_variable="S",
+            carrier_atom="s",
         )
 
     def test_disulfide(self):
         self.check_buildable(
-            ["CSSC"],  # dimethyl disulfide
+            ["CSSC", "CCO"],  # dimethyl disulfide, ethanol
             sulfuric=True,
+            expected_predicate="disulfide",
+            expected_groups=[True, False],
+            predicate_arity=2,
         )
 
     def test_thiol(self):
         self.check_buildable(
-            ["CS"],  # methanethiol
+            ["CS", "CCO"],  # methanethiol, ethanol
             sulfuric=True,
+            expected_predicate="thiol",
+            expected_groups=[True, False],
+            carrier_variable="S",
+            carrier_atom="s",
+            expected_aggregate="sulfuric_groups",
         )
