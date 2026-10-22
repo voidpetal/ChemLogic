@@ -89,6 +89,7 @@ ignore = ["E501"]
 
 
 
+
 [tool.pdm]
 package-dir = "src"
 distribution = true
@@ -116,6 +117,7 @@ dev = [
     "pdm-bump>=0.9.12",
     "pytest-xdist>=3.8.0",
     "pytest-cov>=6.0.0",
+    "pip-audit>=2.10.1",
 ]
 
 [tool.pytest.ini_options]
