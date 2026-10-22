@@ -42,6 +42,7 @@ class COX(Dataset):
             "h",
             "atom_1",
             "atom_3",
+            None,
             ["atom_2", "atom_5", "atom_6"],
             param_size,
         )

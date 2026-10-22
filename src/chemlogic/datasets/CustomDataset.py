@@ -26,6 +26,7 @@ class CustomDataset(Dataset):
         triple_bond: str = "b_3",
         aliphatic_bonds: list[str] | None = None,
         aromatic_bonds: list[str] | None = None,
+        phosphor: str = "p",
     ):
         """Create a CustomDataset.
 
@@ -37,12 +38,13 @@ class CustomDataset(Dataset):
             bond_types (list[str] | None): Encoded bond predicates in the files.
             single_bond, double_bond, triple_bond (str): Bond-order predicates.
             aliphatic_bonds, aromatic_bonds (list[str] | None): Bond-role predicates.
+            phosphor (str): Predicate used for phosphorus atoms in the files.
         """
         self.examples = examples
         self.queries = queries
 
-        atom_types = ["c", "o", "br", "i", "f", "h", "n", "cl", "s"]
-        key_atoms = ["o", "s", "n"]
+        atom_types = ["c", "o", "br", "i", "f", "h", "n", "cl", "s", phosphor]
+        key_atoms = ["o", "s", "n", phosphor]
         bond_types = ["b_1", "b_2", "b_3", "b_12"] if bond_types is None else bond_types
         aliphatic_bonds = (
             [single_bond, double_bond, triple_bond]
@@ -69,6 +71,7 @@ class CustomDataset(Dataset):
             "h",
             "n",
             "s",
+            phosphor,
             ["f", "cl", "br", "i"],
             param_size,
         )

@@ -35,6 +35,7 @@ class Dataset(Template):
         hydrogen: str = "h",
         nitrogen: str = "n",
         sulfur: str = "s",
+        phosphor: str | None = None,
         halogens: list = None,
         param_size: int = 1,
     ):
@@ -60,6 +61,7 @@ class Dataset(Template):
             hydrogen (str): Predicate name for hydrogen atoms. Default "h".
             nitrogen (str): Predicate name for nitrogen atoms. Default "n".
             sulfur (str): Predicate name for sulfur atoms. Default "s".
+            phosphor (str | None): Predicate name for phosphorus atoms, if known.
             halogens (list[str]): Predicate names for halogen atoms. Defaults to
                 ["f", "cl", "br", "i"].
             param_size (int): Embedding dimension. Must be a positive integer.
@@ -82,6 +84,8 @@ class Dataset(Template):
         }.items():
             if not isinstance(value, str):
                 raise TypeError(f"{name} must be a string.")
+        if phosphor is not None and not isinstance(phosphor, str):
+            raise TypeError("phosphor must be a string or None.")
 
         # Validate list inputs
         if not isinstance(key_atom_type, list) or not all(
@@ -140,6 +144,7 @@ class Dataset(Template):
         self.hydrogen = hydrogen
         self.nitrogen = nitrogen
         self.sulfur = sulfur
+        self.phosphor = phosphor
         self.halogens = halogens
         self.param_size = param_size
 

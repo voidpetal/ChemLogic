@@ -50,6 +50,7 @@ class MUTAG(Dataset):
             "h",
             "n",
             "s",
+            None,
             ["f", "cl", "br", "i"],
             param_size,
         )

@@ -135,6 +135,7 @@ class SmilesDataset(Dataset):
             "h",
             "n",
             "s",
+            "p",
             ["f", "cl", "br", "i"],
             param_size,
         )

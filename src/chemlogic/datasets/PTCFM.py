@@ -37,6 +37,7 @@ class PTCFM(Dataset):
             "h",
             "atom_4",
             "atom_6",
+            "atom_1",
             ["atom_9", "atom_5", "atom_7", "atom_13"],
             param_size,
         )
