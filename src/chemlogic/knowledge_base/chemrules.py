@@ -10,6 +10,7 @@ from chemlogic.knowledge_base.functional_groups.RelaxedFunctionalGroups import (
     RelaxedFunctionalGroups,
 )
 from chemlogic.knowledge_base.functional_groups.SulfurGroups import SulfurGroups
+from chemlogic.knowledge_base.subgraph_patterns.CyclePattern import CyclePattern
 
 
 def get_chem_rules(
@@ -43,8 +44,9 @@ def get_chem_rules(
 
     Composes functional group templates (general groups, hydrocarbons, oxygen,
     nitrogen, sulfur, relaxations) and wires the output into the specified
-    output layer. When `funnel=True` the param_size is forced to 1, making
-    each rule's weight a single interpretable scalar.
+    output layer. Oxygen rules also include bounded cycle predicates for
+    lactone detection. When `funnel=True` the param_size is forced to 1,
+    making each rule's weight a single interpretable scalar.
 
     Args:
         layer_name (str): Prefix used for all generated predicate names.
@@ -213,6 +215,18 @@ def get_chem_rules(
             ]
         )
     if oxy:
+        template = (
+            CyclePattern(
+                layer_name=layer_name,
+                node_embed=node_embed,
+                edge_embed=edge_embed,
+                connection=connection,
+                param_size=param_size,
+                min_cycle_size=3,
+                max_cycle_size=10,
+            )
+            + template
+        )
         template = (
             OxygenGroups(
                 layer_name=layer_name,

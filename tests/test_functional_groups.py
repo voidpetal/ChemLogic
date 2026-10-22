@@ -686,9 +686,16 @@ class TestFunctionalGroupModules(unittest.TestCase):
             "acyl_halide",
             "carboxylic_acid",
             "carboxylic_acid_anhydride",
+            "ester_core",
             "ester",
             "carbonate_ester",
             "ether",
+            "ether_link",
+            "phenol",
+            "epoxide",
+            "peroxide",
+            "acetal",
+            "lactone",
             "oxy_groups",
         ]
         for name in expected_predicates:
@@ -776,6 +783,88 @@ class TestFunctionalGroupModules(unittest.TestCase):
             expected_aggregate="oxy_groups",
             carrier_atom="o",
             expected_aggregate_groups=[True, True, True],
+        )
+
+    def test_phenol(self):
+        self.check_buildable(
+            [
+                "c1ccccc1O",
+                "C1=CC=CC=C1O",
+                "c1ccccc1OC",
+                "CCO",
+                "c1ccccc1",
+            ],
+            oxy=True,
+            expected_predicate="phenol",
+            expected_groups=[True, True, False, False, False],
+            carrier_variable="O",
+            carrier_atom="o",
+            expected_aggregate="oxy_groups",
+            expected_aggregate_groups=[True, True, True, True, False],
+        )
+
+    def test_epoxide(self):
+        self.check_buildable(
+            ["C1CO1", "CC1CO1", "C1CC1", "C1COC1", "CCO"],
+            oxy=True,
+            expected_predicate="epoxide",
+            expected_groups=[True, True, False, False, False],
+            carrier_variable="O",
+            carrier_atom="o",
+            expected_aggregate="oxy_groups",
+            expected_aggregate_groups=[True, True, False, True, True],
+        )
+
+    def test_peroxide(self):
+        self.check_buildable(
+            ["COOC", "COO", "COC", "O=O", "CCO"],
+            oxy=True,
+            expected_predicate="peroxide",
+            expected_groups=[True, True, False, False, False],
+            carrier_variable="O1",
+            carrier_atom="o",
+            expected_aggregate="oxy_groups",
+            expected_aggregate_groups=[True, True, True, False, True],
+        )
+
+    def test_acetal(self):
+        self.check_buildable(
+            ["CC(OC)OC", "C1OCCO1", "CC(O)OC", "COC(=O)OC", "CCO", "CC"],
+            oxy=True,
+            expected_predicate="acetal",
+            expected_groups=[True, True, False, False, False, False],
+            carrier_variable="C",
+            carrier_atom="c",
+            expected_aggregate="oxy_groups",
+            expected_aggregate_groups=[True, True, True, True, True, False],
+        )
+
+    def test_lactone(self):
+        self.check_buildable(
+            [
+                "O=C1OCC1",
+                "O=C1OCCC1",
+                "O=C1OCCCC1",
+                "CC(=O)OCC",
+                "O=C1OCCO1",
+                "CCO",
+                "CC",
+            ],
+            oxy=True,
+            expected_predicate="lactone",
+            expected_groups=[True, True, True, False, False, False, False],
+            carrier_variable="C",
+            carrier_atom="c",
+            expected_aggregate="oxy_groups",
+            expected_aggregate_groups=[
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+                False,
+            ],
         )
 
     # Relaxations
