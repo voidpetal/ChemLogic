@@ -340,13 +340,15 @@ Both approaches show improvement over baseline. Use `broadcast_graph_features=Tr
 | Oxygen Groups | `oxy` | Alcohol, Ether, Ester, Carboxylic acid, Aldehyde, Ketone |
 | Nitrogen Groups | `nitro` | Amine, Amide, Nitro, Nitrile, Imine |
 | Sulfur Groups | `sulfuric` | Thiol, Sulfide, Sulfoxide, Sulfone |
+| Aromatic Rings | `rings` | Aromatic rings, heteroaromatic rings, edge-fused aromatic ring pairs |
+| Phosphorus Groups | `phosphorus_groups` | Phosphate, phosphonate, phosphinate, phosphoramidate |
 | Relaxations | `relaxations` | Generalized patterns for approximate matching |
 
 **Configuration:**
 ```python
 chem_rules = True  # Enable all
 
-# Or select categories: (hydrocarbons, oxy, nitro, sulfuric, relaxations)
+# Or select categories: (hydrocarbons, oxy, nitro, sulfuric, relaxations, rings, phosphorus_groups)
 chem_rules = (True, True, False, False, True)
 ```
 
