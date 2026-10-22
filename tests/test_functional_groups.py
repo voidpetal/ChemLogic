@@ -329,6 +329,16 @@ class TestFunctionalGroupModules(unittest.TestCase):
             "amino_group",
             "quat_ammonion",
             "amide",
+            "nitrile",
+            "isocyanide",
+            "hydrazine",
+            "hydrazone",
+            "oxime",
+            "amidine_core",
+            "amidine",
+            "guanidine",
+            "urea",
+            "nitroso",
             "imine",
             "imide",
             "azide",
@@ -399,6 +409,132 @@ class TestFunctionalGroupModules(unittest.TestCase):
             carrier_atom="n",
             expected_aggregate="nitrogen_groups",
             expected_aggregate_groups=[True, False],
+        )
+
+    def test_nitrile(self):
+        self.check_buildable(
+            ["CC#N", "CC#C", "C[N+]#[C-]", "N#C"],
+            nitro=True,
+            expected_predicate="nitrile",
+            expected_groups=[True, False, False, False],
+            carrier_variable="C",
+            carrier_atom="c",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, False, True, False],
+        )
+
+    def test_isocyanide(self):
+        self.check_buildable(
+            ["C[N+]#[C-]", "[C-]#[N+]C", "CC#N", "CN"],
+            nitro=True,
+            expected_predicate="isocyanide",
+            expected_groups=[True, True, False, False],
+            carrier_variable="N",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, True, True],
+        )
+
+    def test_hydrazine(self):
+        self.check_buildable(
+            ["NN", "CNN", "N=N", "CN"],
+            nitro=True,
+            expected_predicate="hydrazine",
+            expected_groups=[True, True, False, False],
+            carrier_variable="N1",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, False, True],
+        )
+
+    def test_hydrazone(self):
+        self.check_buildable(
+            ["CC=NN", "CC=NC", "CNN", "CCO"],
+            nitro=True,
+            expected_predicate="hydrazone",
+            expected_groups=[True, False, False, False],
+            carrier_variable="N1",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, True, False],
+        )
+
+    def test_oxime(self):
+        self.check_buildable(
+            ["CC=NO", "CC=N", "CC=NN", "CCO"],
+            nitro=True,
+            expected_predicate="oxime",
+            expected_groups=[True, False, False, False],
+            carrier_variable="N",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, True, False],
+        )
+
+    def test_amidine(self):
+        self.check_buildable(
+            [
+                "CC(=N)N",
+                "CC(=[NH2+])[NH-]",
+                "CC(=N)O",
+                "CC(=O)N",
+                "CCO",
+            ],
+            nitro=True,
+            expected_predicate="amidine",
+            expected_groups=[True, True, False, False, False],
+            carrier_variable="N1",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, True, True, False],
+        )
+
+    def test_guanidine(self):
+        self.check_buildable(
+            [
+                "N=C(N)N",
+                "[NH2+]=C([NH-])N",
+                "CC(=N)N",
+                "CC(=N)O",
+                "CCO",
+            ],
+            nitro=True,
+            expected_predicate="guanidine",
+            expected_groups=[True, True, False, False, False],
+            carrier_variable="N1",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, True, True, False],
+        )
+
+    def test_urea(self):
+        self.check_buildable(
+            [
+                "NC(=O)N",
+                "NC([O-])=[NH2+]",
+                "CC(=O)N",
+                "CC(=N)N",
+                "CCO",
+            ],
+            nitro=True,
+            expected_predicate="urea",
+            expected_groups=[True, True, False, False, False],
+            carrier_variable="C",
+            carrier_atom="c",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, True, True, False],
+        )
+
+    def test_nitroso(self):
+        self.check_buildable(
+            ["C[N]=O", "CC[N+](=O)[O-]", "CC(=O)N", "CCO"],
+            nitro=True,
+            expected_predicate="nitroso",
+            expected_groups=[True, False, False, False],
+            carrier_variable="N",
+            carrier_atom="n",
+            expected_aggregate="nitrogen_groups",
+            expected_aggregate_groups=[True, True, True, False],
         )
 
     def test_imine(self):
