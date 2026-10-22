@@ -37,6 +37,7 @@ class PTCMM(Dataset):
             "h",
             "atom_3",
             "atom_7",
+            "atom_1",
             ["atom_9", "atom_6", "atom_8", "atom_15"],
             param_size,
         )

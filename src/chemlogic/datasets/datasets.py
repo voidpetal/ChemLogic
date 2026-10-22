@@ -93,6 +93,7 @@ def get_dataset(
     triple_bond: str | None = None,
     aliphatic_bonds: list[str] | None = None,
     aromatic_bonds: list[str] | None = None,
+    phosphor: str | None = None,
 ):
     """
     Instantiates a dataset class based on its name.
@@ -115,6 +116,7 @@ def get_dataset(
         bond_types (list[str] | None): Encoded bond predicates for custom example files.
         single_bond, double_bond, triple_bond (str | None): Custom bond-order predicates.
         aliphatic_bonds, aromatic_bonds (list[str] | None): Custom bond-role predicates.
+        phosphor (str | None): Dataset-specific phosphorus atom predicate for custom files.
     Returns:
         An instance of the dataset class.
 
@@ -148,6 +150,7 @@ def get_dataset(
             triple_bond=triple_bond or "b_3",
             aliphatic_bonds=aliphatic_bonds,
             aromatic_bonds=aromatic_bonds,
+            phosphor="p" if phosphor is None else phosphor,
         )
 
     dataset_class = DATASET_CLASSES.get(dataset_name)

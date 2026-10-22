@@ -203,13 +203,20 @@ class TestDatasetClasses(unittest.TestCase):
             ("b_2", "b_3", "b_4"),
         )
         self.assertEqual(dataset.aromatic_bonds, ["b_0"])
+        self.assertIsNone(dataset.phosphor)
         self.assert_bond_facts_declared(dataset)
 
     def test_dhfr(self):
-        self.assert_bond_facts_declared(DHFR(param_size=1))
+        dataset = DHFR(param_size=1)
+        self.assertEqual(dataset.aromatic_bonds, ["b_0"])
+        self.assertIsNone(dataset.phosphor)
+        self.assert_bond_facts_declared(dataset)
 
     def test_er(self):
-        self.assert_bond_facts_declared(ER(param_size=1))
+        dataset = ER(param_size=1)
+        self.assertEqual(dataset.aromatic_bonds, ["b_0"])
+        self.assertEqual(dataset.phosphor, "atom_9")
+        self.assert_bond_facts_declared(dataset)
 
     def test_mutag(self):
         dataset = MUTAG(param_size=1)
@@ -217,6 +224,7 @@ class TestDatasetClasses(unittest.TestCase):
         self.assertEqual(dataset.double_bond, "b_2")
         self.assertEqual(dataset.triple_bond, "b_3")
         self.assertEqual(dataset.aromatic_bonds, ["b_7"])
+        self.assertIsNone(dataset.phosphor)
         self.assertEqual(dataset.bond_types, ["b_1", "b_2", "b_3", "b_4", "b_5", "b_7"])
         self.assert_bond_facts_declared(dataset)
 
@@ -227,6 +235,7 @@ class TestDatasetClasses(unittest.TestCase):
             ("b_2", "b_1", "b_0"),
         )
         self.assertEqual(dataset.aromatic_bonds, ["b_3"])
+        self.assertEqual(dataset.phosphor, "atom_1")
         self.assert_bond_facts_declared(dataset)
 
     def test_ptcfm(self):
@@ -235,25 +244,30 @@ class TestDatasetClasses(unittest.TestCase):
         self.assertEqual(dataset.double_bond, "b_2")
         self.assertEqual(dataset.triple_bond, "b_0")
         self.assertEqual(dataset.aromatic_bonds, ["b_3"])
+        self.assertEqual(dataset.phosphor, "atom_1")
         self.assert_bond_facts_declared(dataset)
 
     def test_ptcfr(self):
         dataset = PTCFR(param_size=1)
         self.assertEqual((dataset.single_bond, dataset.double_bond), ("b_2", "b_1"))
         self.assertEqual(dataset.aromatic_bonds, ["b_3"])
+        self.assertEqual(dataset.phosphor, "atom_1")
         self.assert_bond_facts_declared(dataset)
 
     def test_ptcmm(self):
         dataset = PTCMM(param_size=1)
         self.assertEqual((dataset.single_bond, dataset.double_bond), ("b_2", "b_1"))
         self.assertEqual(dataset.aromatic_bonds, ["b_3"])
+        self.assertEqual(dataset.phosphor, "atom_1")
         self.assert_bond_facts_declared(dataset)
 
     def test_custom_file_dataset_accepts_dataset_specific_bond_roles(self):
         with tempfile.TemporaryDirectory() as directory:
             examples = Path(directory, "examples.txt")
             queries = Path(directory, "queries.txt")
-            examples.write_text("<1> bond(0, 1, 0), <1> b_ar(0), <1> c(0), <1> c(1).\n")
+            examples.write_text(
+                "<1> bond(0, 1, 0), <1> b_ar(0), <1> c(0), <1> c(1), <1> p_type(2).\n"
+            )
             queries.write_text("1 predict.\n")
 
             dataset = get_dataset(
@@ -267,9 +281,12 @@ class TestDatasetClasses(unittest.TestCase):
                 triple_bond="b_t",
                 aliphatic_bonds=["b_s", "b_d", "b_t"],
                 aromatic_bonds=["b_ar"],
+                phosphor="p_type",
             )
 
             self.assertEqual(dataset.aromatic_bonds, ["b_ar"])
+            self.assertEqual(dataset.phosphor, "p_type")
+            self.assertIn("p_type", dataset.atom_types)
             self.assertIn("b_ar", dataset.bond_types)
 
             examples.write_text(
@@ -278,12 +295,14 @@ class TestDatasetClasses(unittest.TestCase):
 
     def test_smiles_dataset(self):
         dataset = SmilesDataset(
-            smiles_list=["c1ccccc1"],
-            labels=[1],
+            smiles_list=["c1ccccc1", "OP(=O)(O)O"],
+            labels=[1, 1],
             param_size=1,
             dataset_name="test",
         )
         self.assertEqual(dataset.bond_roles["aromatic"], ("b_12",))
+        self.assertEqual(dataset.phosphor, "p")
+        self.assertIn("p", dataset.atom_types)
         self.assertIn("b_12", dataset.bond_types)
         self.assert_bond_facts_declared(dataset)
         dataset.clear()

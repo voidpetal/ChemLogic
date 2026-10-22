@@ -32,6 +32,7 @@ class KnowledgeBase(Template):
         oxygen: str = "",
         nitrogen: str = "",
         sulfur: str = "",
+        phosphor: str = "",
         min_cycle_size: int = 3,  # cycles of size 2 do not make sense
         max_cycle_size: int = 8,
         atom_type: str = "",
@@ -58,6 +59,7 @@ class KnowledgeBase(Template):
             oxygen (str): Predicate name for oxygen atoms.
             nitrogen (str): Predicate name for nitrogen atoms.
             sulfur (str): Predicate name for sulfur atoms.
+            phosphor (str): Predicate name for phosphorus atoms.
             min_cycle_size (int): Minimum ring size to detect. Default 3.
             max_cycle_size (int): Maximum ring size to detect. Default 8.
             atom_type (str): Predicate name for generic atom type (used by neighborhood patterns).
@@ -107,6 +109,7 @@ class KnowledgeBase(Template):
         self.oxygen = oxygen
         self.nitrogen = nitrogen
         self.sulfur = sulfur
+        self.phosphor = phosphor
         self.atom_type = atom_type
 
         # Integers

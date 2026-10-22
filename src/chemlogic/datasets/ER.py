@@ -42,6 +42,7 @@ class ER(Dataset):
             "h",
             "atom_2",
             "atom_4",
+            "atom_9",
             ["atom_3", "atom_5", "atom_6", "atom_8"],
             param_size,
         )

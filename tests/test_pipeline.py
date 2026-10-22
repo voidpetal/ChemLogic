@@ -36,6 +36,7 @@ class TestPipeline(unittest.TestCase):
             oxygen="O",
             nitrogen="N",
             sulfur="S",
+            phosphor="P",
             key_atom_type=[],
             atom_types=[],
             aliphatic_bonds=[],
@@ -71,6 +72,7 @@ class TestPipeline(unittest.TestCase):
             oxygen="O",
             nitrogen="N",
             sulfur="S",
+            phosphor="P",
             key_atom_type=[],
             atom_types=[],
             aliphatic_bonds=[],
@@ -121,6 +123,9 @@ class TestPipeline(unittest.TestCase):
             self.assertEqual(call.kwargs["nitro"], False)
             self.assertEqual(call.kwargs["sulfuric"], False)
             self.assertEqual(call.kwargs["relaxations"], False)
+            self.assertEqual(call.kwargs["rings"], False)
+            self.assertEqual(call.kwargs["phosphor"], "P")
+            self.assertEqual(call.kwargs["phosphorus_groups"], False)
 
         Pipeline(
             **self.default_args,
@@ -133,6 +138,26 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(selected_call.kwargs["hydrocarbons"], True)
         self.assertEqual(selected_call.kwargs["oxy"], True)
         self.assertEqual(selected_call.kwargs["relaxations"], True)
+
+        Pipeline(
+            **self.default_args,
+            chem_rules=(False, False, False, False, False, True),
+            custom_rules=custom_template,
+            custom_input="custom_input",
+            custom_output="custom_output",
+        )
+        self.assertEqual(mock_get_chem_rules.call_args.kwargs["rings"], True)
+
+        Pipeline(
+            **self.default_args,
+            chem_rules=(False, False, False, False, False, False, True),
+            custom_rules=custom_template,
+            custom_input="custom_input",
+            custom_output="custom_output",
+        )
+        self.assertEqual(
+            mock_get_chem_rules.call_args.kwargs["phosphorus_groups"], True
+        )
 
     @patch("chemlogic.utils.Pipeline.get_dataset")
     @patch("chemlogic.models.models.get_model")

@@ -127,6 +127,177 @@ class NitrogenGroups(KnowledgeBase):
             ]
         )
 
+        # Defining a nitrile (R-C≡N); the carrier is the nitrile carbon C.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrile")(V.C)
+                <= (
+                    R.get(self.carbon)(V.C),
+                    R.get(self.nitrogen)(V.N),
+                    R.get(self.carbon)(V.R),
+                    R.hidden.get(f"{self.layer_name}_triple_bonded")(V.C, V.N, V.B1),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.C, V.R, V.B2),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    R.special.alldiff(V.C, V.N, V.R),
+                )
+            ]
+        )
+
+        # Defining an isocyanide (R-N≡C); the carrier is the attached nitrogen N.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_isocyanide")(V.N)
+                <= (
+                    R.get(self.carbon)(V.C),
+                    R.get(self.nitrogen)(V.N),
+                    R.get(self.carbon)(V.R),
+                    R.hidden.get(f"{self.layer_name}_triple_bonded")(V.C, V.N, V.B1),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.N, V.R, V.B2),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    R.special.alldiff(V.C, V.N, V.R),
+                )
+            ]
+        )
+
+        # Defining a hydrazine (N-N); each nitrogen atom is a carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_hydrazine")(V.N1)
+                <= (
+                    R.get(self.nitrogen)(V.N1),
+                    R.get(self.nitrogen)(V.N2),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.N1, V.N2, V.B),
+                    R.get(f"{self.layer_name}_bond_message")(V.B),
+                    R.special.alldiff(V.N1, V.N2),
+                )
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_hydrazine")(V.N2)
+                <= (
+                    R.get(self.nitrogen)(V.N1),
+                    R.get(self.nitrogen)(V.N2),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.N1, V.N2, V.B),
+                    R.get(f"{self.layer_name}_bond_message")(V.B),
+                    R.special.alldiff(V.N1, V.N2),
+                )
+            ]
+        )
+
+        # Defining a hydrazone (C=N-N); the imine nitrogen is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_hydrazone")(V.N1)
+                <= (
+                    R.get(self.carbon)(V.C),
+                    R.get(f"{self.layer_name}_hydrazine")(V.N1),
+                    R.hidden.get(f"{self.layer_name}_double_bonded")(V.C, V.N1, V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.special.alldiff(V.C, V.N1),
+                )
+            ]
+        )
+
+        # Defining an oxime (C=N-O); the imine nitrogen is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_oxime")(V.N)
+                <= (
+                    R.get(self.carbon)(V.C),
+                    R.get(self.nitrogen)(V.N),
+                    R.get(self.oxygen)(V.O),
+                    R.hidden.get(f"{self.layer_name}_double_bonded")(V.C, V.N, V.B1),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.N, V.O, V.B2),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    R.special.alldiff(V.C, V.N, V.O),
+                )
+            ]
+        )
+
+        # Shared amidine core (C(=N)-N) for amidine, guanidine, and urea motifs.
+        self.add_rules(
+            [
+                R.hidden.get(f"{self.layer_name}_amidine_core")(V.C, V.N1, V.N2)
+                <= (
+                    R.get(self.carbon)(V.C),
+                    R.get(self.nitrogen)(V.N1),
+                    R.get(self.nitrogen)(V.N2),
+                    R.hidden.get(f"{self.layer_name}_double_bonded")(V.C, V.N1, V.B1),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.C, V.N2, V.B2),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    R.special.alldiff(V.C, V.N1, V.N2),
+                )
+            ]
+        )
+        # The imino nitrogen is the amidine carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_amidine")(V.N1)
+                <= R.hidden.get(f"{self.layer_name}_amidine_core")(V.C, V.N1, V.N2)
+            ]
+        )
+
+        # Defining a guanidine (C(=N)(-N)-N); the imino nitrogen is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_guanidine")(V.N1)
+                <= (
+                    R.get(self.nitrogen)(V.N3),
+                    R.hidden.get(f"{self.layer_name}_amidine_core")(V.C, V.N1, V.N2),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.C, V.N3, V.B3),
+                    R.get(f"{self.layer_name}_bond_message")(V.B3),
+                    R.special.alldiff(V.C, V.N3, V.N1, V.N2),
+                )
+            ]
+        )
+
+        # Defining a urea (N-C(=O)-N); the carbonyl carbon is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_urea")(V.C)
+                <= (
+                    R.get(f"{self.layer_name}_carbonyl_group")(V.C, V.O, V.N1, V.N2),
+                    R.get(self.nitrogen)(V.N1),
+                    R.get(self.nitrogen)(V.N2),
+                )
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_urea")(V.C)
+                <= (
+                    R.hidden.get(f"{self.layer_name}_amidine_core")(V.C, V.N1, V.N2),
+                    R.get(self.oxygen)(V.O),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.C, V.O, V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.special.alldiff(V.C, V.O, V.N1, V.N2),
+                )
+            ]
+        )
+
+        # Defining a nitroso group (R-N=O); the nitroso nitrogen is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitroso")(V.N)
+                <= (
+                    R.get(self.carbon)(V.R),
+                    R.get(self.nitrogen)(V.N),
+                    R.get(self.oxygen)(V.O),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.R, V.N, V.B1),
+                    R.hidden.get(f"{self.layer_name}_double_bonded")(V.N, V.O, V.B2),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    ~R.get(f"{self.layer_name}_nitro_group")(V.N),
+                    R.special.alldiff(V.R, V.N, V.O),
+                )
+            ]
+        )
+
         # Defining azide group (R-N=N=N)
         self.add_rules(
             [
@@ -312,6 +483,60 @@ class NitrogenGroups(KnowledgeBase):
             [
                 R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
                 <= R.get(f"{self.layer_name}_amide")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
+                <= R.get(f"{self.layer_name}_nitrile")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
+                <= R.get(f"{self.layer_name}_isocyanide")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
+                <= R.get(f"{self.layer_name}_hydrazine")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
+                <= R.get(f"{self.layer_name}_hydrazone")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
+                <= R.get(f"{self.layer_name}_oxime")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
+                <= R.get(f"{self.layer_name}_amidine")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
+                <= R.get(f"{self.layer_name}_guanidine")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
+                <= R.get(f"{self.layer_name}_urea")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
+                <= R.get(f"{self.layer_name}_nitroso")(V.X)[self.param_size]
             ]
         )
         self.add_rules(
