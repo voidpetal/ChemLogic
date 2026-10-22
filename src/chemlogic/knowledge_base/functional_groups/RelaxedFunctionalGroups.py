@@ -11,6 +11,10 @@ class RelaxedFunctionalGroups(KnowledgeBase):
         "connection",
     ]
 
+    def __init__(self, include_benzene_ring: bool = True, **kwargs):
+        self.include_benzene_ring = include_benzene_ring
+        super().__init__(**kwargs)
+
     def create_template(self):
         # Defining a relaxed aliphatic and aromatic bond messages
         self.add_rules(
@@ -71,40 +75,41 @@ class RelaxedFunctionalGroups(KnowledgeBase):
             ]
         )
 
-        # Defining a relaxed aromatic ring
-        self.add_rules(
-            [
-                R.get(f"{self.layer_name}_relaxed_benzene_ring")(V.A)
-                <= R.get(f"{self.layer_name}_relaxed_benzene_ring")(V.A, V.B)
-            ]
-        )
-        self.add_rules(
-            [
-                R.get(f"{self.layer_name}_relaxed_benzene_ring")(V.A, V.B)
-                <= (
+        if self.include_benzene_ring:
+            # Defining a relaxed aromatic ring
+            self.add_rules(
+                [
+                    R.get(f"{self.layer_name}_relaxed_benzene_ring")(V.A)
+                    <= R.get(f"{self.layer_name}_relaxed_benzene_ring")(V.A, V.B)
+                ]
+            )
+            self.add_rules(
+                [
+                    R.get(f"{self.layer_name}_relaxed_benzene_ring")(V.A, V.B)
+                    <= (
+                        R.get(f"{self.layer_name}_relaxed_benzene_ring")(
+                            V.A, V.B, V.C, V.D, V.E, V.F
+                        )
+                    )
+                ]
+            )
+
+            self.add_rules(
+                [
                     R.get(f"{self.layer_name}_relaxed_benzene_ring")(
                         V.A, V.B, V.C, V.D, V.E, V.F
                     )
-                )
-            ]
-        )
-
-        self.add_rules(
-            [
-                R.get(f"{self.layer_name}_relaxed_benzene_ring")(
-                    V.A, V.B, V.C, V.D, V.E, V.F
-                )
-                <= (
-                    R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.A, V.B),
-                    R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.B, V.C),
-                    R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.C, V.D),
-                    R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.D, V.E),
-                    R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.E, V.F),
-                    R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.F, V.A),
-                    R.special.alldiff(V.A, V.B, V.C, V.D, V.E, V.F),
-                )
-            ]
-        )
+                    <= (
+                        R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.A, V.B),
+                        R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.B, V.C),
+                        R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.C, V.D),
+                        R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.D, V.E),
+                        R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.E, V.F),
+                        R.get(f"{self.layer_name}_relaxed_aromatic_bonded")(V.F, V.A),
+                        R.special.alldiff(V.A, V.B, V.C, V.D, V.E, V.F),
+                    )
+                ]
+            )
 
         # Defining a potential group
         self.add_rules(
@@ -186,16 +191,17 @@ class RelaxedFunctionalGroups(KnowledgeBase):
                 )
             ]
         )
-        self.add_rules(
-            [
-                R.get(f"{self.layer_name}_relaxed_functional_group")(V.X)
-                <= (
-                    R.get(f"{self.layer_name}_relaxed_benzene_ring")(V.X)[
-                        self.param_size
-                    ]
-                )
-            ]
-        )
+        if self.include_benzene_ring:
+            self.add_rules(
+                [
+                    R.get(f"{self.layer_name}_relaxed_functional_group")(V.X)
+                    <= (
+                        R.get(f"{self.layer_name}_relaxed_benzene_ring")(V.X)[
+                            self.param_size
+                        ]
+                    )
+                ]
+            )
         self.add_rules(
             [
                 R.get(f"{self.layer_name}_relaxed_functional_group")(V.X)
