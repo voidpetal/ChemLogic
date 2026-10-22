@@ -4,7 +4,6 @@ from neuralogic.core import R, V
 
 from chemlogic.utils.Pipeline import Pipeline
 
-
 # This mirrors the raw structure used by the built-in nitro rule, while keeping
 # the built-in nitro category disabled. It emits a learnable four-dimensional
 # feature for a carbon attached to R-N(=O)-O.

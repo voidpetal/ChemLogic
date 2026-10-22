@@ -1,9 +1,6 @@
 """Tests for edge-level (bond) predicate generation in smiles_conversion."""
 
-import os
 import tempfile
-
-import pytest
 
 from chemlogic.datasets.utils.smiles_conversion import (
     BOND_FEATURE_MAP,

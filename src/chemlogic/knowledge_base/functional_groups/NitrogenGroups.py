@@ -10,9 +10,7 @@ class NitrogenGroups(KnowledgeBase):
         self.add_rules(
             [
                 R.hidden.get(f"{self.layer_name}_n_carbonyl")(V.N)
-                <= R.get(f"{self.layer_name}_carbonyl_group")(
-                    V.C, V.O, V.R, V.N
-                )
+                <= R.get(f"{self.layer_name}_carbonyl_group")(V.C, V.O, V.R, V.N)
             ]
         )
         self.add_rules(
@@ -267,9 +265,7 @@ class NitrogenGroups(KnowledgeBase):
             [
                 R.get(f"{self.layer_name}_carbamate")(V.N)
                 <= (
-                    R.get(f"{self.layer_name}_carbonyl_group")(
-                        V.C, V.O1, V.O2, V.N
-                    ),
+                    R.get(f"{self.layer_name}_carbonyl_group")(V.C, V.O1, V.O2, V.N),
                     R.get(f"{self.layer_name}_amino_group")(V.N, V.C, V.R1, V.R2),
                     R.get(self.oxygen)(V.O2),
                     R.get(self.carbon)(V.R),
@@ -309,9 +305,7 @@ class NitrogenGroups(KnowledgeBase):
         self.add_rules(
             [
                 R.get(f"{self.layer_name}_nitrogen_groups")(V.X)
-                <= R.get(f"{self.layer_name}_quaternary_ammonium")(V.X)[
-                    self.param_size
-                ]
+                <= R.get(f"{self.layer_name}_quaternary_ammonium")(V.X)[self.param_size]
             ]
         )
         self.add_rules(

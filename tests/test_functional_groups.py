@@ -50,7 +50,9 @@ class TestFunctionalGroupModules(unittest.TestCase):
         expected_aggregate=None,
         expected_aggregate_groups=None,
     ):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as output_directory:
+        with tempfile.TemporaryDirectory(
+            ignore_cleanup_errors=True
+        ) as output_directory:
             dataset = SmilesDataset(
                 smiles_list=smiles,
                 labels=[1] * len(smiles),
@@ -120,12 +122,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
                     )
 
                     if expected and carrier_atom is not None:
-                        group_ids = {
-                            atom.substitutions["X"] for atom in grounded
-                        }
-                        carrier_facts = grounding.get_atoms(
-                            R.get(carrier_atom)(V.X)
-                        )
+                        group_ids = {atom.substitutions["X"] for atom in grounded}
+                        carrier_facts = grounding.get_atoms(R.get(carrier_atom)(V.X))
                         carrier_ids = {
                             atom.substitutions["X"] for atom in carrier_facts
                         }
@@ -366,7 +364,17 @@ class TestFunctionalGroupModules(unittest.TestCase):
             carrier_variable="N",
             carrier_atom="n",
             expected_aggregate="nitrogen_groups",
-            expected_aggregate_groups=[True, True, True, True, True, True, False, True, True],
+            expected_aggregate_groups=[
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+                False,
+                True,
+                True,
+            ],
         )
 
     def test_quat_ammonion(self):

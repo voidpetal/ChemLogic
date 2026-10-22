@@ -43,9 +43,7 @@ class CustomDataset(Dataset):
 
         atom_types = ["c", "o", "br", "i", "f", "h", "n", "cl", "s"]
         key_atoms = ["o", "s", "n"]
-        bond_types = (
-            ["b_1", "b_2", "b_3", "b_12"] if bond_types is None else bond_types
-        )
+        bond_types = ["b_1", "b_2", "b_3", "b_12"] if bond_types is None else bond_types
         aliphatic_bonds = (
             [single_bond, double_bond, triple_bond]
             if aliphatic_bonds is None

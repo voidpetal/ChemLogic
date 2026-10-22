@@ -77,6 +77,7 @@ class TestDataset(unittest.TestCase):
             )
             self.assertIn("positive", str(context.exception))
 
+
 class TestDatasetClasses(unittest.TestCase):
     def assert_bond_facts_declared(self, dataset):
         examples_file = dataset.data.examples_file

@@ -196,25 +196,23 @@ class OxygenGroups(KnowledgeBase):
         self.add_rules(
             [
                 R.get(f"{self.layer_name}_oxy_groups")(V.X)
-                <= R.get(f"{self.layer_name}_carboxylic_acid_anhydride")(
-                    V.X, V.Y
-                )[self.param_size]
+                <= R.get(f"{self.layer_name}_carboxylic_acid_anhydride")(V.X, V.Y)[
+                    self.param_size
+                ]
             ]
         )
         self.add_rules(
             [
                 R.get(f"{self.layer_name}_oxy_groups")(V.Y)
-                <= R.get(f"{self.layer_name}_carboxylic_acid_anhydride")(
-                    V.X, V.Y
-                )[self.param_size]
+                <= R.get(f"{self.layer_name}_carboxylic_acid_anhydride")(V.X, V.Y)[
+                    self.param_size
+                ]
             ]
         )
         self.add_rules(
             [
                 R.get(f"{self.layer_name}_oxy_groups")(V.X)
-                <= R.get(f"{self.layer_name}_ester")(V.X)[
-                    self.param_size
-                ]
+                <= R.get(f"{self.layer_name}_ester")(V.X)[self.param_size]
             ]
         )
         self.add_rules(

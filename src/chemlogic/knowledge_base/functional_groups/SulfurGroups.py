@@ -136,16 +136,12 @@ class SulfurGroups(KnowledgeBase):
         self.add_rules(
             [
                 R.get(f"{self.layer_name}_sulfuric_groups")(V.S1)
-                <= R.get(f"{self.layer_name}_disulfide")(V.S1, V.S2)[
-                    self.param_size
-                ]
+                <= R.get(f"{self.layer_name}_disulfide")(V.S1, V.S2)[self.param_size]
             ]
         )
         self.add_rules(
             [
                 R.get(f"{self.layer_name}_sulfuric_groups")(V.S2)
-                <= R.get(f"{self.layer_name}_disulfide")(V.S1, V.S2)[
-                    self.param_size
-                ]
+                <= R.get(f"{self.layer_name}_disulfide")(V.S1, V.S2)[self.param_size]
             ]
         )

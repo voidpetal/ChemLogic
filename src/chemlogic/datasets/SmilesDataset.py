@@ -162,9 +162,7 @@ class SmilesDataset(Dataset):
         )
         self.atom_types = atom_types
         self.bond_types = list(
-            dict.fromkeys(
-                [*bond_types, *self.aliphatic_bonds, *self.aromatic_bonds]
-            )
+            dict.fromkeys([*bond_types, *self.aliphatic_bonds, *self.aromatic_bonds])
         )
         # Store feature names for template creation
         self.atom_feature_names = atom_feature_names

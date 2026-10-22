@@ -381,7 +381,10 @@ custom_template = [
 ]
 
 pipeline = Pipeline(
-    "mutagen", "gnn", param_size=4, layers=2,
+    "mutagen",
+    "gnn",
+    param_size=4,
+    layers=2,
     chem_rules=True,
     subgraphs=False,
     custom_rules=custom_template,
