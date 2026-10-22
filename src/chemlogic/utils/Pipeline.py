@@ -71,7 +71,7 @@ class Pipeline:
         :param max_subgraph_depth: Maximum depth for subgraph processing.
         :param max_cycle_size: Maximum size of cycles in subgraphs.
         :param subgraphs: Tuple containing flags for different subgraph types.
-        :param chem_rules: Tuple containing chemical rule configurations.
+        :param chem_rules: Boolean or tuple/list of chemical category flags.
         :param architecture: The architecture to use for the model. - default: ArchitectureType.BARE ["bare", "CCE", "CCD"]
         :param funnel: create an informational funnel in the knowledge base. - default: False
         :param smiles_list: A list of smiles strings to build the dataset with.
@@ -209,13 +209,52 @@ class Pipeline:
 
         if cfg.chem_rules or custom_rules is not None:
             if cfg.chem_rules:
-                try:
-                    # TODO: create a generator class
-                    hydrocarbons, oxy, nitro, sulfuric, relaxations = cfg.chem_rules
-                except Exception:
-                    hydrocarbons, oxy, nitro, sulfuric, relaxations = (True,) * 5
+                # TODO: create a generator class
+                if cfg.chem_rules is True:
+                    (
+                        hydrocarbons,
+                        oxy,
+                        nitro,
+                        sulfuric,
+                        relaxations,
+                        rings,
+                        phosphorus_groups,
+                    ) = (True,) * 7
+                elif isinstance(cfg.chem_rules, (list, tuple)) and len(
+                    cfg.chem_rules
+                ) in (5, 6, 7):
+                    categories = (
+                        *cfg.chem_rules,
+                        *(False,) * (7 - len(cfg.chem_rules)),
+                    )
+                    if not all(isinstance(category, bool) for category in categories):
+                        raise ValueError(
+                            "Every `chem_rules` category flag must be boolean."
+                        )
+                    (
+                        hydrocarbons,
+                        oxy,
+                        nitro,
+                        sulfuric,
+                        relaxations,
+                        rings,
+                        phosphorus_groups,
+                    ) = categories
+                else:
+                    raise ValueError(
+                        "`chem_rules` must be a boolean or a tuple/list of five "
+                        "legacy flags, optionally followed by ring and phosphorus flags."
+                    )
             else:
-                hydrocarbons, oxy, nitro, sulfuric, relaxations = (False,) * 5
+                (
+                    hydrocarbons,
+                    oxy,
+                    nitro,
+                    sulfuric,
+                    relaxations,
+                    rings,
+                    phosphorus_groups,
+                ) = (False,) * 7
 
             chem_path = (
                 "sub_path"
@@ -245,11 +284,14 @@ class Pipeline:
                 oxygen=dataset.oxygen,
                 nitrogen=dataset.nitrogen,
                 sulfur=dataset.sulfur,
+                phosphor=dataset.phosphor,
                 path=chem_path,
                 hydrocarbons=hydrocarbons,
                 nitro=nitro,
                 sulfuric=sulfuric,
                 oxy=oxy,
+                rings=rings,
+                phosphorus_groups=phosphorus_groups,
                 relaxations=relaxations,
                 key_atoms=dataset.key_atom_type,
                 funnel=cfg.funnel,

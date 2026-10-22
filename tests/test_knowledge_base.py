@@ -132,6 +132,17 @@ class TestChemRules(unittest.TestCase):
         template = get_chem_rules(**args)
         self.assertIsInstance(template, Model)
 
+    def test_rings_remove_relaxed_benzene_duplicate(self):
+        relaxation_only = get_chem_rules(**{**self.common_args, "relaxations": True})
+        self.assertIn("test_layer_relaxed_benzene_ring", str(relaxation_only))
+
+        rings_and_relaxations = get_chem_rules(
+            **{**self.common_args, "rings": True, "relaxations": True}
+        )
+        rules = str(rings_and_relaxations)
+        self.assertIn("test_layer_aromatic_ring", rules)
+        self.assertNotIn("test_layer_relaxed_benzene_ring", rules)
+
     def test_with_path_and_relaxations(self):
         args = {
             **self.common_args,
@@ -161,6 +172,30 @@ class TestChemRules(unittest.TestCase):
         args = {**self.common_args, "sulfuric": True}
         template = get_chem_rules(**args)
         self.assertIsInstance(template, Model)
+
+    def test_with_ring_groups_enabled(self):
+        args = {**self.common_args, "rings": True}
+        template = get_chem_rules(**args)
+        self.assertIsInstance(template, Model)
+
+    def test_ring_groups_require_aromatic_bond_mapping(self):
+        args = {**self.common_args, "aromatic_bonds": [], "rings": True}
+        with self.assertRaisesRegex(ValueError, "aromatic bond predicate"):
+            get_chem_rules(**args)
+
+    def test_with_phosphorus_groups_enabled(self):
+        args = {
+            **self.common_args,
+            "phosphor": "P",
+            "phosphorus_groups": True,
+        }
+        template = get_chem_rules(**args)
+        self.assertIsInstance(template, Model)
+
+    def test_phosphorus_groups_require_atom_mapping(self):
+        args = {**self.common_args, "phosphorus_groups": True}
+        with self.assertRaisesRegex(ValueError, "phosphor"):
+            get_chem_rules(**args)
 
     def test_with_all_groups_enabled(self):
         args = {

@@ -6,9 +6,13 @@ from chemlogic.knowledge_base.functional_groups.GeneralFunctionalGroups import (
 from chemlogic.knowledge_base.functional_groups.Hydrocarbons import Hydrocarbons
 from chemlogic.knowledge_base.functional_groups.NitrogenGroups import NitrogenGroups
 from chemlogic.knowledge_base.functional_groups.OxygenGroups import OxygenGroups
+from chemlogic.knowledge_base.functional_groups.PhosphorusGroups import (
+    PhosphorusGroups,
+)
 from chemlogic.knowledge_base.functional_groups.RelaxedFunctionalGroups import (
     RelaxedFunctionalGroups,
 )
+from chemlogic.knowledge_base.functional_groups.RingGroups import RingGroups
 from chemlogic.knowledge_base.functional_groups.SulfurGroups import SulfurGroups
 from chemlogic.knowledge_base.subgraph_patterns.CyclePattern import CyclePattern
 
@@ -31,23 +35,23 @@ def get_chem_rules(
     oxygen=None,
     nitrogen=None,
     sulfur=None,
+    phosphor=None,
     path=None,
     hydrocarbons=False,
     nitro=False,
     sulfuric=False,
     oxy=False,
+    rings=False,
     relaxations=False,
     key_atoms: list = None,
     funnel=False,
+    phosphorus_groups=False,
 ):
-    """Build a chemical-rule template for a given layer.
+    """Build and combine the selected chemical-rule templates.
 
-    Composes functional group templates (general groups, hydrocarbons, oxygen,
-    nitrogen, sulfur, relaxations) and wires the output into the specified
-    output layer. Oxygen rules also include bounded cycle predicates for
-    lactone detection. When `funnel=True` the param_size is forced to 1,
-    making each rule's weight a single interpretable scalar.
-
+    Composes the requested functional-group templates and wires the output
+    into the specified output layer. When `funnel=True` the param_size is forced to
+    1, making each rule's weight a single interpretable scalar.
     Args:
         layer_name (str): Prefix used for all generated predicate names.
         node_embed (str): Node embedding predicate name.
@@ -66,11 +70,14 @@ def get_chem_rules(
         oxygen (str): Oxygen atom predicate name.
         nitrogen (str): Nitrogen atom predicate name.
         sulfur (str): Sulfur atom predicate name.
+        phosphor (str): Phosphorus atom predicate name.
         path: Path predicate name, if subgraph paths are used.
         hydrocarbons (bool): Enable hydrocarbon group rules.
         nitro (bool): Enable nitrogen-containing group rules.
         sulfuric (bool): Enable sulfur-containing group rules.
         oxy (bool): Enable oxygen-containing group rules.
+        rings (bool): Enable aromatic and fused-ring group rules.
+        phosphorus_groups (bool): Enable phosphorus-containing group rules.
         relaxations (bool): Enable relaxed/generalised pattern rules.
         key_atoms (list[str]): Key atom predicate names for general rules.
         funnel (bool): Force param_size=1 for scalar interpretable weights.
@@ -279,6 +286,42 @@ def get_chem_rules(
                 <= R.get(f"{layer_name}_sulfuric_groups")(V.X)
             ]
         )
+    if phosphorus_groups:
+        template = (
+            PhosphorusGroups(
+                layer_name=layer_name,
+                param_size=param_size,
+                carbon=carbon,
+                oxygen=oxygen,
+                nitrogen=nitrogen,
+                phosphor=phosphor,
+            )
+            + template
+        )
+        template.add_rules(
+            [
+                R.get(f"{layer_name}_functional_group")(V.X)[param_size]
+                <= R.get(f"{layer_name}_phosphorus_groups")(V.X)
+            ]
+        )
+    if rings:
+        template = (
+            RingGroups(
+                layer_name=layer_name,
+                node_embed=node_embed,
+                edge_embed=edge_embed,
+                param_size=param_size,
+                carbon=carbon,
+                aromatic_bonds=aromatic_bonds,
+            )
+            + template
+        )
+        template.add_rules(
+            [
+                R.get(f"{layer_name}_functional_group")(V.X)[param_size]
+                <= R.get(f"{layer_name}_ring_groups")(V.X)
+            ]
+        )
     if relaxations:
         template = (
             RelaxedFunctionalGroups(
@@ -286,6 +329,7 @@ def get_chem_rules(
                 param_size=param_size,
                 connection=connection,
                 carbon=carbon,
+                include_benzene_ring=not rings,
             )
             + template
         )

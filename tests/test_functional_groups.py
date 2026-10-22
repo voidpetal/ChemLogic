@@ -12,6 +12,7 @@ from chemlogic.knowledge_base.functional_groups import (
     Hydrocarbons,
     NitrogenGroups,
     OxygenGroups,
+    PhosphorusGroups,
     RelaxedFunctionalGroups,
     SulfurGroups,
 )
@@ -41,6 +42,8 @@ class TestFunctionalGroupModules(unittest.TestCase):
         nitro=False,
         sulfuric=False,
         oxy=False,
+        rings=False,
+        phosphorus_groups=False,
         relaxations=False,
         expected_predicate=None,
         expected_groups=None,
@@ -78,11 +81,14 @@ class TestFunctionalGroupModules(unittest.TestCase):
                 oxygen=dataset.oxygen,
                 nitrogen=dataset.nitrogen,
                 sulfur=dataset.sulfur,
+                phosphor=dataset.phosphor,
                 key_atoms=dataset.key_atom_type,
                 hydrocarbons=hydrocarbons,
                 nitro=nitro,
                 sulfuric=sulfuric,
                 oxy=oxy,
+                rings=rings,
+                phosphorus_groups=phosphorus_groups,
                 relaxations=relaxations,
             )
             dataset += kb
@@ -123,9 +129,15 @@ class TestFunctionalGroupModules(unittest.TestCase):
 
                     if expected and carrier_atom is not None:
                         group_ids = {atom.substitutions["X"] for atom in grounded}
-                        carrier_facts = grounding.get_atoms(R.get(carrier_atom)(V.X))
+                        carrier_atoms = (
+                            [carrier_atom]
+                            if isinstance(carrier_atom, str)
+                            else carrier_atom
+                        )
                         carrier_ids = {
-                            atom.substitutions["X"] for atom in carrier_facts
+                            atom.substitutions["X"]
+                            for atom_type in carrier_atoms
+                            for atom in grounding.get_atoms(R.get(atom_type)(V.X))
                         }
                         self.assertTrue(
                             group_ids <= carrier_ids,
@@ -865,6 +877,149 @@ class TestFunctionalGroupModules(unittest.TestCase):
                 True,
                 False,
             ],
+        )
+
+    # Aromatic rings
+    def test_aromatic_ring(self):
+        self.check_buildable(
+            ["c1ccccc1", "c1ccncc1", "C1CCCCC1"],
+            rings=True,
+            expected_predicate="aromatic_ring",
+            expected_groups=[True, True, False],
+            carrier_variable="X",
+            carrier_atom="atom_embed",
+            expected_aggregate="ring_groups",
+            expected_aggregate_groups=[True, True, False],
+        )
+
+    def test_heteroaromatic_ring(self):
+        self.check_buildable(
+            [
+                "c1ccncc1",
+                "C1=CC=NC=C1",
+                "c1ccoc1",
+                "c1ccsc1",
+                "c1ccccc1",
+                "C1CCNCC1",
+            ],
+            rings=True,
+            expected_predicate="heteroaromatic_ring",
+            expected_groups=[True, True, True, True, False, False],
+            carrier_variable="X",
+            carrier_atom=["n", "o", "s"],
+            expected_aggregate="ring_groups",
+            expected_aggregate_groups=[True, True, True, True, True, False],
+        )
+
+    def test_fused_aromatic_ring(self):
+        self.check_buildable(
+            [
+                "c1ccc2ccccc2c1",
+                "c1ccc2[nH]ccc2c1",
+                "c1ccccc1-c1ccccc1",
+                "C1CCCCC1",
+            ],
+            rings=True,
+            expected_predicate="fused_aromatic_ring",
+            expected_groups=[True, True, False, False],
+            carrier_variable="X",
+            carrier_atom="c",
+            expected_aggregate="ring_groups",
+            expected_aggregate_groups=[True, True, True, False],
+        )
+
+    # Phosphorus groups
+    def test_phosphorus_groups_instantiation(self):
+        args = {
+            "layer_name": "phos_layer",
+            "param_size": (4, 4),
+            "carbon": "c",
+            "oxygen": "o",
+            "nitrogen": "n",
+            "phosphor": "p",
+        }
+        self.assertIsInstance(PhosphorusGroups(**args), Model)
+
+    def test_phosphorus_groups_missing_required_param(self):
+        args = {
+            "layer_name": "phos_layer",
+            "param_size": (4, 4),
+            "carbon": "c",
+            "oxygen": "o",
+            "nitrogen": "n",
+            "phosphor": "p",
+        }
+        for key in PhosphorusGroups.required_keys:
+            with self.subTest(missing=key), self.assertRaises((ValueError, TypeError)):
+                PhosphorusGroups(
+                    **{name: value for name, value in args.items() if name != key}
+                )
+
+    def test_phosphorus_groups_rule_structure(self):
+        args = {
+            "layer_name": "phos_layer",
+            "param_size": (4, 4),
+            "carbon": "c",
+            "oxygen": "o",
+            "nitrogen": "n",
+            "phosphor": "p",
+        }
+        rules = str(PhosphorusGroups(**args))
+        for group in (
+            "phosphate",
+            "phosphonate",
+            "phosphinate",
+            "phosphoramidate",
+            "phosphorus_groups",
+        ):
+            self.assertIn(f"phos_layer_{group}", rules)
+
+    def test_phosphate(self):
+        self.check_buildable(
+            ["OP(=O)(O)O", "[O-]P(=O)(O)O", "CP(=O)(O)O", "CCO"],
+            phosphorus_groups=True,
+            expected_predicate="phosphate",
+            expected_groups=[True, True, False, False],
+            carrier_variable="P",
+            carrier_atom="p",
+            expected_aggregate="phosphorus_groups",
+            expected_aggregate_groups=[True, True, True, False],
+        )
+
+    def test_phosphonate(self):
+        self.check_buildable(
+            ["CP(=O)(O)O", "C[P+]([O-])(O)O", "OP(=O)(O)O", "CP(=O)O"],
+            phosphorus_groups=True,
+            expected_predicate="phosphonate",
+            expected_groups=[True, True, False, False],
+            carrier_variable="P",
+            carrier_atom="p",
+            expected_aggregate="phosphorus_groups",
+            expected_aggregate_groups=[True, True, True, False],
+        )
+
+    def test_phosphinate(self):
+        self.check_buildable(
+            ["CP(=O)(C)O", "C[P+]([O-])(C)O", "CP(=O)(O)O", "CC(=O)C"],
+            phosphorus_groups=True,
+            expected_predicate="phosphinate",
+            expected_groups=[True, True, False, False],
+            carrier_variable="P",
+            carrier_atom="p",
+            expected_aggregate="phosphorus_groups",
+            expected_aggregate_groups=[True, True, True, False],
+        )
+
+    def test_phosphoramidate(self):
+        self.check_buildable(
+            ["COP(=O)(N)OC", "C[P+]([O-])(N)OC", "COP(=O)(O)OC", "CCN"],
+            phosphorus_groups=True,
+            expected_predicate="phosphoramidate",
+            expected_groups=[True, True, False, False],
+            carrier_variable="P",
+            carrier_atom="p",
+            expected_aggregate="phosphorus_groups",
+            expected_aggregate_groups=[True, True, True, False],
         )
 
     # Relaxations
