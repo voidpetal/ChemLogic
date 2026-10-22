@@ -829,6 +829,7 @@ class TestFunctionalGroupModules(unittest.TestCase):
             "layer_name": "sulfurs",
             "param_size": (4, 4),
             "carbon": "c",
+            "oxygen": "o",
             "sulfur": "s",
             "nitrogen": "n",
             "hydrogen": "h",
@@ -843,6 +844,7 @@ class TestFunctionalGroupModules(unittest.TestCase):
                 "layer_name": "sulfurs",
                 "param_size": (4, 4),
                 "carbon": "c",
+                "oxygen": "o",
                 "sulfur": "s",
                 "nitrogen": "n",
                 "hydrogen": "h",
@@ -856,6 +858,7 @@ class TestFunctionalGroupModules(unittest.TestCase):
             "layer_name": "sulfurs",
             "param_size": (4, 4),
             "carbon": "c",
+            "oxygen": "o",
             "sulfur": "s",
             "nitrogen": "n",
             "hydrogen": "h",
@@ -865,6 +868,13 @@ class TestFunctionalGroupModules(unittest.TestCase):
         expected_predicates = [
             "thiocyanate",
             "isothiocyanate",
+            "sulfur_oxygen_bond",
+            "sulfur_dioxide_core",
+            "sulfone",
+            "sulfoxide",
+            "sulfonamide",
+            "sulfonate",
+            "sulfonyl_halide",
             "sulfide",
             "disulfide",
             "thiol",
@@ -893,14 +903,104 @@ class TestFunctionalGroupModules(unittest.TestCase):
             carrier_atom="c",
         )
 
-    def test_sulfide(self):
+    def test_sulfoxide(self):
         self.check_buildable(
-            ["CSC", "CCO"],  # dimethyl sulfide, ethanol
+            ["CS(C)=O", "C[S+](C)[O-]", "CS(=O)(=O)C", "CSC", "CCO"],
             sulfuric=True,
-            expected_predicate="sulfide",
-            expected_groups=[True, False],
+            expected_predicate="sulfoxide",
+            expected_groups=[True, True, False, False, False],
             carrier_variable="S",
             carrier_atom="s",
+            expected_aggregate="sulfuric_groups",
+            expected_aggregate_groups=[True, True, True, True, False],
+        )
+
+    def test_sulfone(self):
+        self.check_buildable(
+            [
+                "CS(=O)(=O)C",
+                "C[S+](=O)([O-])C",
+                "C[S+2]([O-])([O-])C",
+                "CS(C)=O",
+                "CSC",
+                "CCO",
+            ],
+            sulfuric=True,
+            expected_predicate="sulfone",
+            expected_groups=[True, True, True, False, False, False],
+            carrier_variable="S",
+            carrier_atom="s",
+            expected_aggregate="sulfuric_groups",
+            expected_aggregate_groups=[True, True, True, True, True, False],
+        )
+
+    def test_sulfonamide(self):
+        self.check_buildable(
+            [
+                "CS(=O)(=O)N",
+                "C[S+](=O)([O-])N",
+                "CS(=O)(=O)C",
+                "CS(C)=O",
+                "CCO",
+            ],
+            sulfuric=True,
+            expected_predicate="sulfonamide",
+            expected_groups=[True, True, False, False, False],
+            carrier_variable="S",
+            carrier_atom="s",
+            expected_aggregate="sulfuric_groups",
+            expected_aggregate_groups=[True, True, True, True, False],
+        )
+
+    def test_sulfonate(self):
+        self.check_buildable(
+            [
+                "CS(=O)(=O)O",
+                "CS(=O)(=O)[O-]",
+                "C[S+2]([O-])([O-])O",
+                "CS(=O)(=O)OC",
+                "CS(=O)(=O)C",
+                "CS(=O)(=O)N",
+                "CCO",
+            ],
+            sulfuric=True,
+            expected_predicate="sulfonate",
+            expected_groups=[True, True, True, True, False, False, False],
+            carrier_variable="S",
+            carrier_atom="s",
+            expected_aggregate="sulfuric_groups",
+            expected_aggregate_groups=[True, True, True, True, True, True, False],
+        )
+
+    def test_sulfonyl_halide(self):
+        self.check_buildable(
+            [
+                "CS(=O)(=O)Cl",
+                "C[S+](=O)([O-])Cl",
+                "CS(=O)(=O)C",
+                "CS(=O)(=O)N",
+                "CS(=O)(=O)O",
+                "CCO",
+            ],
+            sulfuric=True,
+            expected_predicate="sulfonyl_halide",
+            expected_groups=[True, True, False, False, False, False],
+            carrier_variable="S",
+            carrier_atom="s",
+            expected_aggregate="sulfuric_groups",
+            expected_aggregate_groups=[True, True, True, True, True, False],
+        )
+
+    def test_sulfide(self):
+        self.check_buildable(
+            ["CSC", "CS(C)=O", "CS(=O)(=O)C", "CCO"],
+            sulfuric=True,
+            expected_predicate="sulfide",
+            expected_groups=[True, False, False, False],
+            carrier_variable="S",
+            carrier_atom="s",
+            expected_aggregate="sulfuric_groups",
+            expected_aggregate_groups=[True, True, True, False],
         )
 
     def test_disulfide(self):

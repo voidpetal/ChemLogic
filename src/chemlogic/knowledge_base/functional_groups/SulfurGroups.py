@@ -9,11 +9,140 @@ class SulfurGroups(KnowledgeBase):
         "param_size",
         "hydrogen",
         "carbon",
+        "oxygen",
         "sulfur",
         "nitrogen",
     ]
 
     def create_template(self):
+        self.add_rules(
+            [
+                R.hidden.get(f"{self.layer_name}_sulfur_oxygen_bond")(V.S, V.O)
+                <= (
+                    R.get(self.sulfur)(V.S),
+                    R.get(self.oxygen)(V.O),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.S, V.O, V.B),
+                    R.get(f"{self.layer_name}_bond_message")(V.B),
+                )
+            ]
+        )
+        self.add_rules(
+            [
+                R.hidden.get(f"{self.layer_name}_sulfur_oxygen_bond")(V.S, V.O)
+                <= (
+                    R.get(self.sulfur)(V.S),
+                    R.get(self.oxygen)(V.O),
+                    R.hidden.get(f"{self.layer_name}_double_bonded")(V.S, V.O, V.B),
+                    R.get(f"{self.layer_name}_bond_message")(V.B),
+                )
+            ]
+        )
+
+        self.add_rules(
+            [
+                R.hidden.get(f"{self.layer_name}_sulfur_dioxide_core")(V.S, V.O1, V.O2)
+                <= (
+                    R.hidden.get(f"{self.layer_name}_sulfur_oxygen_bond")(V.S, V.O1),
+                    R.hidden.get(f"{self.layer_name}_sulfur_oxygen_bond")(V.S, V.O2),
+                    R.special.alldiff(V.S, V.O1, V.O2),
+                )
+            ]
+        )
+
+        # Defining a sulfone (R-S(=O)2-R); the sulfur is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfone")(V.S)
+                <= (
+                    R.get(self.carbon)(V.R1),
+                    R.get(self.carbon)(V.R2),
+                    R.hidden.get(f"{self.layer_name}_sulfur_dioxide_core")(
+                        V.S, V.O1, V.O2
+                    ),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.R1, V.S, V.B1),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.S, V.R2, V.B2),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    R.special.alldiff(V.R1, V.R2, V.S, V.O1, V.O2),
+                )
+            ]
+        )
+
+        # Defining a sulfoxide (R-S(=O)-R); the sulfur is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfoxide")(V.S)
+                <= (
+                    R.get(self.carbon)(V.R1),
+                    R.get(self.sulfur)(V.S),
+                    R.get(self.carbon)(V.R2),
+                    R.get(self.oxygen)(V.O),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.R1, V.S, V.B1),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.S, V.R2, V.B2),
+                    R.hidden.get(f"{self.layer_name}_sulfur_oxygen_bond")(V.S, V.O),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    ~R.get(f"{self.layer_name}_sulfone")(V.S),
+                    R.special.alldiff(V.R1, V.R2, V.S, V.O),
+                )
+            ]
+        )
+
+        # Defining a sulfonamide (R-S(=O)2-N); the sulfur is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfonamide")(V.S)
+                <= (
+                    R.get(self.carbon)(V.R),
+                    R.get(self.nitrogen)(V.N),
+                    R.hidden.get(f"{self.layer_name}_sulfur_dioxide_core")(
+                        V.S, V.O1, V.O2
+                    ),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.R, V.S, V.B1),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.S, V.N, V.B2),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    R.special.alldiff(V.R, V.S, V.N, V.O1, V.O2),
+                )
+            ]
+        )
+
+        # Defining the sulfonic acid/sulfonate motif (R-SO3); sulfur is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfonate")(V.S)
+                <= (
+                    R.get(self.carbon)(V.R),
+                    R.hidden.get(f"{self.layer_name}_sulfur_dioxide_core")(
+                        V.S, V.O1, V.O2
+                    ),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.R, V.S, V.B1),
+                    R.hidden.get(f"{self.layer_name}_sulfur_oxygen_bond")(V.S, V.O3),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.special.alldiff(V.R, V.S, V.O1, V.O2, V.O3),
+                )
+            ]
+        )
+
+        # Defining a sulfonyl halide (R-S(=O)2-X); sulfur is the carrier.
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfonyl_halide")(V.S)
+                <= (
+                    R.get(self.carbon)(V.R),
+                    R.get(f"{self.layer_name}_halogen")(V.X),
+                    R.hidden.get(f"{self.layer_name}_sulfur_dioxide_core")(
+                        V.S, V.O1, V.O2
+                    ),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.R, V.S, V.B1),
+                    R.hidden.get(f"{self.layer_name}_single_bonded")(V.S, V.X, V.B2),
+                    R.get(f"{self.layer_name}_bond_message")(V.B1),
+                    R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    R.special.alldiff(V.R, V.S, V.X, V.O1, V.O2),
+                )
+            ]
+        )
+
         # Defining thiocyanate group (R-S-C≡N)
         self.add_rules(
             [
@@ -66,6 +195,8 @@ class SulfurGroups(KnowledgeBase):
                     R.hidden.get(f"{self.layer_name}_single_bonded")(V.S, V.R2, V.B2),
                     R.get(f"{self.layer_name}_bond_message")(V.B1),
                     R.get(f"{self.layer_name}_bond_message")(V.B2),
+                    ~R.get(f"{self.layer_name}_sulfoxide")(V.S),
+                    ~R.get(f"{self.layer_name}_sulfone")(V.S),
                     R.special.alldiff(V.R1, V.R2, V.S),
                 )
             ]
@@ -125,6 +256,36 @@ class SulfurGroups(KnowledgeBase):
             [
                 R.get(f"{self.layer_name}_sulfuric_groups")(V.X)
                 <= R.get(f"{self.layer_name}_thiol")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfuric_groups")(V.X)
+                <= R.get(f"{self.layer_name}_sulfoxide")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfuric_groups")(V.X)
+                <= R.get(f"{self.layer_name}_sulfone")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfuric_groups")(V.X)
+                <= R.get(f"{self.layer_name}_sulfonamide")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfuric_groups")(V.X)
+                <= R.get(f"{self.layer_name}_sulfonate")(V.X)[self.param_size]
+            ]
+        )
+        self.add_rules(
+            [
+                R.get(f"{self.layer_name}_sulfuric_groups")(V.X)
+                <= R.get(f"{self.layer_name}_sulfonyl_halide")(V.X)[self.param_size]
             ]
         )
         self.add_rules(

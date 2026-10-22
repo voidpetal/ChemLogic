@@ -252,6 +252,7 @@ def get_chem_rules(
                 layer_name=layer_name,
                 param_size=param_size,
                 carbon=carbon,
+                oxygen=oxygen,
                 hydrogen=hydrogen,
                 nitrogen=nitrogen,
                 sulfur=sulfur,
